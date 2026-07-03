@@ -1,0 +1,11 @@
+# 电影票分析系统 - 依赖清单
+# 安装: pip install -r requirements.txt
+
+PyQt5 >= 5.15.0
+PyQtWebEngine >= 5.15.0
+pyecharts >= 2.0.0
+pandas >= 1.5.0
+numpy >= 1.24.0
+requests >= 2.28.0
+beautifulsoup4 >= 4.11.0
+lxml >= 4.9.0

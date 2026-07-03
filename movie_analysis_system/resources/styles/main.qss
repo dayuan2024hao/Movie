@@ -1,0 +1,202 @@
+/* ═══════════════════════════════════════════
+   电影票分析系统 — 主样式表 (main.qss)
+   设计规范参照 docs/UI设计规范.md
+   色彩体系：
+     主色    #1E88E5  按钮、标题、强调
+     浅色    #64B5F6  悬停、选中
+     深色    #1565C0  导航栏、页脚
+     背景    #F5F7FA  页面背景
+     卡片白  #FFFFFF  卡片、弹窗
+     分隔线  #E0E0E0  分割、边框
+   ═══════════════════════════════════════════ */
+
+/* ──────── 全局 ──────── */
+
+QMainWindow {
+    background-color: #F5F7FA;
+}
+
+QWidget#centralWidget {
+    background-color: #F5F7FA;
+}
+
+/* ──────── 左侧导航栏 ──────── */
+
+QWidget#navBar {
+    background-color: #FFFFFF;
+    border-right: 1px solid #E0E0E0;
+}
+
+QLabel#navLogo {
+    background-color: #1565C0;
+    color: #FFFFFF;
+    padding-left: 20px;
+    font-size: 14px;
+}
+
+QLabel#navSeparator {
+    background-color: #E0E0E0;
+    margin: 0 12px;
+}
+
+QWidget#navButtonGroup {
+    background-color: transparent;
+}
+
+/* 导航按钮 — 10pt (Windows高DPI适配) + 3px选中竖条 */
+QPushButton#navButton {
+    background-color: transparent;
+    color: #4A5568;
+    border: none;
+    border-left: 3px solid transparent;
+    text-align: left;
+    padding: 14px 16px;
+    font-size: 10pt;
+    font-weight: 500;
+    min-height: 48px;
+}
+
+QPushButton#navButton:hover {
+    background-color: #EBF8FF;
+    color: #2B6CB0;
+    border-left: 3px solid #3182CE;
+}
+
+QPushButton#navButton:checked {
+    background-color: #EBF8FF;
+    color: #2B6CB0;
+    border-left: 3px solid #3182CE;
+    font-weight: bold;
+}
+
+/* ──────── 内容区域 ──────── */
+
+QWidget#contentArea {
+    background-color: #F5F7FA;
+}
+
+QStackedWidget#pageStack {
+    background-color: #F5F7FA;
+}
+
+/* ──────── 页面标题 ──────── */
+
+QLabel#pageTitle {
+    color: #37474F;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+QLabel#pageMessage {
+    color: #757575;
+    font-size: 13px;
+}
+
+/* ──────── 状态栏 ──────── */
+
+QStatusBar {
+    background-color: #FFFFFF;
+    border-top: 1px solid #E0E0E0;
+    color: #757575;
+    font-size: 12px;
+    padding: 2px 12px;
+}
+
+/* ──────── 滚动条（全局） ──────── */
+
+QScrollBar:vertical {
+    background-color: #F5F7FA;
+    width: 8px;
+    border: none;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #BDBDBD;
+    border-radius: 4px;
+    min-height: 30px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: #9E9E9E;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    height: 0;
+}
+
+QScrollBar:horizontal {
+    background-color: #F5F7FA;
+    height: 8px;
+    border: none;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: #BDBDBD;
+    border-radius: 4px;
+    min-width: 30px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background-color: #9E9E9E;
+}
+
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal {
+    width: 0;
+}
+
+/* ──────── 工具提示 ──────── */
+
+QToolTip {
+    background-color: #37474F;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 12px;
+}
+
+/* ──────── 统计卡片 ──────── */
+
+QFrame#statCard {
+    background-color: #FFFFFF;
+    border: 1px solid #E0E0E0;
+    border-radius: 8px;
+}
+
+/* ──────── 看板滚动区 ──────── */
+
+QScrollArea#dashboardScroll {
+    background-color: #F5F7FA;
+    border: none;
+}
+
+/* ──────── 电影数据表格 ──────── */
+
+QTableWidget#movieTable {
+    background-color: #FFFFFF;
+    border: 1px solid #E0E0E0;
+    gridline-color: #F0F0F0;
+    font-size: 12px;
+}
+
+QTableWidget#movieTable::item {
+    padding: 6px 10px;
+}
+
+QTableWidget#movieTable::item:selected {
+    background-color: #BBDEFB;
+    color: #333333;
+}
+
+QHeaderView::section {
+    background-color: #ECEFF1;
+    color: #37474F;
+    font-weight: bold;
+    font-size: 12px;
+    padding: 6px 10px;
+    border: none;
+    border-right: 1px solid #E0E0E0;
+    border-bottom: 1px solid #E0E0E0;
+}

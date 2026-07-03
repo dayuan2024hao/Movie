@@ -1,0 +1,23 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Database
+data/movie_analysis.db
+data/movie_analysis.db-shm
+data/movie_analysis.db-wal
+
+# Poster cache
+cache/
+
+# Debug files
+maoyan_debug.html
+screenshot_*.png
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+dev_log/*.log
