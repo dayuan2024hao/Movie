@@ -28,6 +28,7 @@ from PyQt5.QtCore import Qt, QSize, QPropertyAnimation, pyqtSignal
 from PyQt5.QtGui import QFont, QIcon
 
 from database.db_manager import DatabaseManager
+from ui.dashboard_page import DashboardPage
 from ui.search_page import SearchPage
 from ui.recommendation_page import RecommendationPage
 from ui.detail_page import DetailPage
@@ -115,10 +116,11 @@ class MainWindow(QMainWindow):
         self.resize(1400, 900)
 
         # 页面索引映射
-        self.PAGE_RECOMMEND = 0
-        self.PAGE_SEARCH = 1
-        self.PAGE_ABOUT = 2
-        self.PAGE_DETAIL = 3
+        self.PAGE_DASHBOARD = 0
+        self.PAGE_RECOMMEND = 1
+        self.PAGE_SEARCH = 2
+        self.PAGE_ABOUT = 3
+        self.PAGE_DETAIL = 4
 
         # 导航按钮列表
         self._nav_buttons: list[NavButton] = []
@@ -185,6 +187,7 @@ class MainWindow(QMainWindow):
 
         # 导航按钮
         nav_items = [
+            ("数据看板", "📊"),
             ("电影推荐", "⭐"),
             ("搜索筛选", "🔍"),
             ("关于系统", "👤"),
@@ -229,6 +232,8 @@ class MainWindow(QMainWindow):
         self.stack.setObjectName("pageStack")
 
         # 创建页面
+        dashboard = DashboardPage()
+        dashboard.set_db(self.db)
         recommendation = RecommendationPage()
         recommendation.set_db(self.db)
         search = SearchPage()
@@ -238,11 +243,12 @@ class MainWindow(QMainWindow):
             lambda: self.switch_page(self._prev_page)
         )
 
-        # 添加 4 个页面
-        self.stack.addWidget(recommendation)
-        self.stack.addWidget(search)
-        self.stack.addWidget(AboutPage())
-        self.stack.addWidget(self.detail_page)
+        # 添加 5 个页面（0=看板, 1=推荐, 2=搜索, 3=关于, 4=详情）
+        self.stack.addWidget(dashboard)        # 0
+        self.stack.addWidget(recommendation)   # 1
+        self.stack.addWidget(search)           # 2
+        self.stack.addWidget(AboutPage())      # 3
+        self.stack.addWidget(self.detail_page) # 4
 
         # 连接推荐卡片 → 详情导航
         recommendation.navigation_requested.connect(self.show_movie_detail)
@@ -272,14 +278,14 @@ class MainWindow(QMainWindow):
 
         # 更新导航按钮状态（详情页不选中任何导航）
         for i, btn in enumerate(self._nav_buttons):
-            btn.setChecked(i == index if index < 4 else False)
+            btn.setChecked(i == index if index < len(self._nav_buttons) else False)
 
         # 切换页面
         self.stack.setCurrentIndex(index)
         self.page_changed.emit(index)
 
         # 状态栏更新
-        page_names = ["电影推荐", "搜索筛选", "关于系统", "电影详情"]
+        page_names = ["数据看板", "电影推荐", "搜索筛选", "关于系统", "电影详情"]
         if index < len(page_names):
             self.statusBar().showMessage(f"当前页面: {page_names[index]}")
 

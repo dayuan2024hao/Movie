@@ -113,4 +113,4 @@ def create_genre_box_office_chart(db: DatabaseManager) -> str:
         )
     )
 
-    return engine.render(bar, height="300px")
+    return engine.render(bar, height="310px")

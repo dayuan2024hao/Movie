@@ -108,4 +108,4 @@ def create_scatter_plot(db: DatabaseManager) -> str:
         )
     )
 
-    return engine.render(scatter, height="300px")
+    return engine.render(scatter, height="270px")

@@ -111,4 +111,4 @@ def create_price_distribution_chart(db: DatabaseManager) -> str:
         )
     )
 
-    return engine.render(bar, height="300px")
+    return engine.render(bar, height="250px")

@@ -38,13 +38,13 @@ class ChartEngine:
         CurrentConfig.ONLINE_HOST = "https://cdn.jsdelivr.net/npm/echarts@5/dist/"
         logger.debug("图表引擎初始化完成")
 
-    def render(self, chart, width: str = "100%", height: str = "400px") -> str:
+    def render(self, chart, width: str = "100%", height: str = "200px") -> str:
         """将 PyECharts 图表对象渲染为完整的 HTML 字符串。
 
         Args:
             chart: PyECharts 图表对象（Bar / Pie / Scatter 等）
             width: 图表宽度 CSS 值
-            height: 图表高度 CSS 值
+            height: 图表高度 CSS 值（默认 200px 适配紧凑布局）
 
         Returns:
             可直接在 QWebEngineView 中加载的 HTML 字符串
@@ -58,7 +58,7 @@ class ChartEngine:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
         * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-        html, body {{ width: 100%; height: 100%; background: #FFFFFF; }}
+        html, body {{ width: 100%; height: {height}; background: #FFFFFF; }}
         .chart-container {{ width: {width}; height: {height}; }}
     </style>
 </head>

@@ -114,4 +114,4 @@ def create_box_office_range_chart(db: DatabaseManager) -> str:
         )
     )
 
-    return engine.render(bar, height="300px")
+    return engine.render(bar, height="250px")

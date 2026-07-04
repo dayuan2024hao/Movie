@@ -99,4 +99,4 @@ def create_rating_distribution(db: DatabaseManager) -> str:
         )
     )
 
-    return engine.render(bar, height="300px")
+    return engine.render(bar, height="270px")
