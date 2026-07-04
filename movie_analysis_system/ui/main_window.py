@@ -54,9 +54,8 @@ class NavButton(QPushButton):
         self.setFixedHeight(48)
         self.setCursor(Qt.PointingHandCursor)
         self.setObjectName("navButton")
-        self.setFont(QFont("Microsoft YaHei", 13))
-        # 字体大小由 QSS 中 font-size:10pt 控制（覆盖此设置）
-        # 保留 setFont 防止 QSS 未加载时的默认字体过小
+        self.setFont(QFont("Microsoft YaHei", 10))
+        # 字体由 QSS 中 font-size:10pt 控制，此处 setFont 为 QSS 未加载时的备选
 
     def sizeHint(self) -> QSize:
         """返回按钮推荐尺寸。"""
@@ -295,6 +294,18 @@ class MainWindow(QMainWindow):
         """导航到电影详情页（按实时搜索数据）。"""
         self.detail_page.show_movie_data(data)
         self.switch_page(self.PAGE_DETAIL)
+
+    def closeEvent(self, event) -> None:
+        """窗口关闭时清理资源。"""
+        # 清理搜索线程
+        for i in range(self.stack.count()):
+            w = self.stack.widget(i)
+            if hasattr(w, "cleanup"):
+                try:
+                    w.cleanup()
+                except Exception:
+                    pass
+        super().closeEvent(event)
 
     # ──────────────────────── 样式加载 ────────────────────────
 

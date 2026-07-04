@@ -4,11 +4,17 @@
 基于猫眼真实数据，对电影进行多维度排名。
 
 排名算法（独立函数，各有独立权重依据）：
-  高分推荐   calc_high_rating_rank()  — 纯评分降序，≥9.0优先
+  高分推荐   calc_high_rating_rank()  — 纯评分降序
   口碑推荐   calc_reputation_rank()   — 评分² × sqrt(评分人数)
-  热门推荐   calc_hot_rank()          — 热度×0.6 + 票房×0.4
-  性价比推荐  calc_value_rank()        — (评分×上座率) / 票价
+  热门推荐   calc_hot_rank()          — 票房×0.6 + 评分人数×0.4
+  性价比推荐  calc_value_rank()        — 评分 / 票价（数据不全时标记模拟数据）
   综合推荐   calc_comprehensive_rank() — 多因子加权
+
+数据可用性说明（在映47部）：
+  - rating:    34/47 (72%)  ✓
+  - rating_count: 23/47 (49%)  ✓
+  - box_office: 47/47 (100%) ✓
+  - ticket_price: 23/47 (49%)  ⚠ 性价比模式用模拟数据
 """
 
 import logging
@@ -25,8 +31,8 @@ WEIGHT_REPUTATION = 0.25      # 口碑（评分² × 人数）
 WEIGHT_PRICE = -0.15          # 票价成本（负值=加分）
 
 # 热门推荐权重
-HOT_RATING_COUNT = 0.60       # 评分人数权重
-HOT_BOX_OFFICE = 0.40         # 票房权重
+HOT_RATING_COUNT = 0.40       # 评分人数权重
+HOT_BOX_OFFICE = 0.60         # 票房权重（在映全有票房，提权）
 
 # 性价比推荐参数
 VALUE_RATING_W = 0.50         # 评分在性价比中的权重
@@ -46,21 +52,20 @@ MAX_PRICE = 80.0
 # ──────────────────── 高分推荐 ────────────────────
 
 def calc_high_rating_rank(movies: list[dict]) -> list[dict]:
-    """高分推荐：纯评分降序，≥9.0 优先展示。
+    """高分推荐：纯评分降序。
 
-    权重依据：
-      - 只考虑评分质量，不引入热度/票价等干扰
-      - ≥9.0 的电影视为"高分佳作"，排在 9.0 以下之前
+    算法：评分降序，无评分排在末尾。
+    数据源：rating 字段（34/47 在映有数据）
     """
-    scored = [
-        dict(m) for m in movies
-        if m.get("rating", 0) > 0
-    ]
-    # 优先：≥9.0 → 按评分降序
-    scored.sort(
-        key=lambda m: (1 if m["rating"] >= 9.0 else 0, m["rating"]),
-        reverse=True,
-    )
+    print(f"[DEBUG_STEP_3] calc_high_rating_rank input: {len(movies)} movies")
+    scored = [dict(m) for m in movies if m.get("rating", 0) > 0]
+    print(f"[DEBUG_STEP_3]   after filter (rating>0): {len(scored)} movies")
+    if scored:
+        print(f"[DEBUG_STEP_3]   before sort - first 5: {[(m.get('title','?')[:8], m.get('rating')) for m in scored[:5]]}")
+        print(f"[DEBUG_STEP_3]   before sort - last 5: {[(m.get('title','?')[:8], m.get('rating')) for m in scored[-5:]]}")
+    scored.sort(key=lambda m: m["rating"], reverse=True)
+    if scored:
+        print(f"[DEBUG_STEP_3]   after sort - first 5: {[(m.get('title','?')[:8], m.get('rating')) for m in scored[:5]]}")
     return scored
 
 
@@ -69,91 +74,95 @@ def calc_high_rating_rank(movies: list[dict]) -> list[dict]:
 def calc_reputation_rank(movies: list[dict]) -> list[dict]:
     """口碑推荐：评分² × sqrt(评分人数)。
 
-    权重依据：
-      - 评分²：高分口碑放大（9.5²=90.25 >> 8.0²=64.0）
-      - sqrt(人数)：对数压缩，万人评与百万评差异缩小
-      - 乘积：同时考察"分高"和"人多"，避免高分冷门片
-      - 限 showing：未上映无法检验口碑
+    算法：
+      - 评分²：高分口碑放大
+      - sqrt(人数)：对数压缩
+      - 无评分人数时降级为评分×票房系数
+
+    数据源：rating + rating_count（23/47 在映有评分人数）
     """
     def _score(m: dict) -> float:
         r = m.get("rating") or 0
         c = m.get("rating_count") or 0
-        return (r / MAX_RATING) ** REP_RATING_POWER * (c ** REP_COUNT_DAMP + 1)
+        bo = m.get("box_office") or 0
+        if r <= 0:
+            return 0
+        if c > 0:
+            return (r / MAX_RATING) ** REP_RATING_POWER * (c ** REP_COUNT_DAMP + 1)
+        # 无评分人数时用票房缩放作为替代热度指标
+        return (r / MAX_RATING) ** REP_RATING_POWER * (min(bo, 500000) / 500000 * 100 + 1)
 
-    showing = [
-        dict(m) for m in movies
-        if m.get("showing_status") == "showing" and m.get("rating", 0) > 0
-    ]
-    showing.sort(key=_score, reverse=True)
-    return showing
+    scored = [dict(m) for m in movies if m.get("rating", 0) > 0]
+    scored.sort(key=_score, reverse=True)
+    return scored
 
 
 # ──────────────────── 热门推荐 ────────────────────
 
 def calc_hot_rank(movies: list[dict]) -> list[dict]:
-    """热门推荐：评分人数×0.6 + 票房×0.4。
+    """热门推荐：票房×0.6 + 评分人数×0.4。
 
-    权重依据：
-      - 评分人数：反映关注热度/想看人群
-      - 票房：真金白银的市场热度
-      - 限 showing：未上映无票房数据，coming_soon 降级为仅用评分人数
+    算法：
+      - 票房：反映市场热度（在映全有数据）
+      - 评分人数：反映关注热度
+      - 无评分人数时纯用票房
+
+    数据源：box_office（47/47）+ rating_count（23/47）
     """
-    max_count = max((m.get("rating_count") or 0) for m in movies) or 1
     max_box = max((m.get("box_office") or 0) for m in movies) or 1
+    max_count = max((m.get("rating_count") or 0) for m in movies) or 1
 
     def _score(m: dict) -> float:
-        nc = (m.get("rating_count") or 0) / max_count
         bo = (m.get("box_office") or 0) / max_box
-        if m.get("box_office", 0) > 0:
-            return nc * HOT_RATING_COUNT + bo * HOT_BOX_OFFICE
-        return nc  # 无票房数据时纯用评分人数
+        nc = (m.get("rating_count") or 0) / max_count
+        if m.get("rating_count", 0) > 0:
+            return bo * HOT_BOX_OFFICE + nc * HOT_RATING_COUNT
+        return bo  # 无评分人数时纯票房
 
-    showing = [
-        dict(m) for m in movies
-        if m.get("showing_status") == "showing"
-    ]
-    showing.sort(key=_score, reverse=True)
-    return showing
+    scored = list(movies)  # 所有在映电影都有票房
+    scored.sort(key=_score, reverse=True)
+    return scored
 
 
 # ──────────────────── 性价比推荐 ────────────────────
 
 def calc_value_rank(movies: list[dict]) -> list[dict]:
-    """性价比推荐：(评分得分 × 上座率系数) / 票价系数。
+    """性价比推荐：(评分得分 / 票价系数)。
 
-    公式：
-      value_score = (rating/10 × seat_rate) / (price_norm + 0.01)
-      seat_rate = rating_count / max_rating_count  （评分人数近似上座率）
+    算法：
+      value_score = (rating/MAX_RATING) / (price_norm + 0.01)
       price_norm = ticket_price / max_price
 
-    权重依据：
-      - 评分高 + 上座高 + 票价低 = 高性价比
-      - 防止除以零：price_norm + 0.01
-      - 无票价时降级为 (rating/10) × 0.5（纯看评分）
+    数据源：rating（34/47）+ ticket_price（23/47）
+    注意：约半数在映电影无票价数据，无票价电影降级使用
+    同评分均值票价估算（标记为模拟数据）。
     """
-    max_count = max((m.get("rating_count") or 0) for m in movies) or 1
-    max_price = max((m.get("ticket_price") or 0) for m in movies) or 1
+    # 计算有票价电影的平均票价用于估算
+    priced_movies = [m for m in movies if m.get("ticket_price", 0) > 0]
+    avg_price = (
+        sum(m.get("ticket_price", 0) for m in priced_movies) / len(priced_movies)
+        if priced_movies else 45.0
+    )
+
+    max_price = max((m.get("ticket_price") or avg_price) for m in movies) or avg_price
 
     results = []
     for m in movies:
         movie = dict(m)
         r = movie.get("rating") or 0
-        c = movie.get("rating_count") or 0
         p = movie.get("ticket_price") or 0
 
-        seat_rate = c / max_count
-        price_norm = p / max_price if p > 0 else 0.01
+        if r <= 0:
+            movie["value_score"] = 0
+            movie["value_is_simulated"] = False
+            results.append(movie)
+            continue
 
-        if r > 0 and p > 0:
-            # 完整公式：(评分×上座率) / 票价
-            value = (r / MAX_RATING * VALUE_RATING_W + seat_rate * VALUE_SEAT_RATE_W) / price_norm
-        elif r > 0:
-            # 无票价：降级为评分×上座率
-            value = (r / MAX_RATING) * VALUE_RATING_W + seat_rate * VALUE_SEAT_RATE_W * 0.5
-        else:
-            value = 0
+        price_norm = (p / max_price) if p > 0 else (avg_price / max_price)
+        value = (r / MAX_RATING) / (price_norm + 0.01)
 
         movie["value_score"] = round(value, 4)
+        movie["value_is_simulated"] = (p <= 0)
         results.append(movie)
 
     scored = [m for m in results if m.get("value_score", 0) > 0]
@@ -164,7 +173,7 @@ def calc_value_rank(movies: list[dict]) -> list[dict]:
 # ──────────────────── 综合推荐 ────────────────────
 
 def calc_comprehensive_rank(movies: list[dict]) -> list[dict]:
-    """综合推荐：5 因子加权。
+    """综合推荐：多因子加权。
 
     公式：
       comprehensive = rating_norm × 0.35
@@ -172,15 +181,11 @@ def calc_comprehensive_rank(movies: list[dict]) -> list[dict]:
                     + reputation_norm × 0.25
                     - price_norm × 0.15
 
-      rating_norm      = rating / MAX_RATING
-      popularity_norm  = min(rating_count, MAX_RATING_COUNT) / MAX_RATING_COUNT
-      reputation_norm  = (rating/MAX_RATING)² × sqrt(rating_count) 归一化
-      price_norm       = min(ticket_price, MAX_PRICE) / MAX_PRICE
+    数据源：rating + rating_count + box_office + ticket_price
     """
     if not movies:
         return []
 
-    # 找各指标最大值用于归一化
     max_count = max((m.get("rating_count") or 0) for m in movies) or 1
 
     results = []
@@ -190,37 +195,36 @@ def calc_comprehensive_rank(movies: list[dict]) -> list[dict]:
         c = m.get("rating_count") or 0
         p = m.get("ticket_price") or 0
 
-        # 评分因子 (0~1)
         rating_norm = r / MAX_RATING
-
-        # 热度因子 (0~1)
         popularity_norm = min(c, MAX_RATING_COUNT) / MAX_RATING_COUNT
 
-        # 口碑因子 (0~1)：评分² × 人数归一化
+        # 口碑因子
         raw_rep = (r / MAX_RATING) ** REP_RATING_POWER * (c ** REP_COUNT_DAMP + 1)
         max_raw = (1.0) ** REP_RATING_POWER * (max_count ** REP_COUNT_DAMP + 1) or 1
         reputation_norm = raw_rep / max_raw
 
-        # 票价因子 (0~1)
         price_norm = min(p, MAX_PRICE) / MAX_PRICE if p > 0 else 0
 
-        if p > 0:
-            comprehensive = (
-                rating_norm * WEIGHT_RATING
-                + popularity_norm * WEIGHT_POPULARITY
-                + reputation_norm * WEIGHT_REPUTATION
-                + price_norm * WEIGHT_PRICE
-            )
+        if r > 0:
+            if p > 0:
+                comprehensive = (
+                    rating_norm * WEIGHT_RATING
+                    + popularity_norm * WEIGHT_POPULARITY
+                    + reputation_norm * WEIGHT_REPUTATION
+                    + price_norm * WEIGHT_PRICE
+                )
+            else:
+                # 无票价：权重重新分配
+                adj = WEIGHT_RATING + WEIGHT_POPULARITY + WEIGHT_REPUTATION + abs(WEIGHT_PRICE)
+                comprehensive = (
+                    rating_norm * (WEIGHT_RATING + abs(WEIGHT_PRICE) * 0.5) / adj
+                    + popularity_norm * WEIGHT_POPULARITY / adj
+                    + reputation_norm * WEIGHT_REPUTATION / adj
+                )
         else:
-            # 无票价：权重重新分配
-            adj = WEIGHT_RATING + WEIGHT_POPULARITY + WEIGHT_REPUTATION
-            comprehensive = (
-                rating_norm * (WEIGHT_RATING + WEIGHT_PRICE * 0.3) / adj
-                + popularity_norm * WEIGHT_POPULARITY / adj
-                + reputation_norm * WEIGHT_REPUTATION / adj
-            )
+            comprehensive = 0
 
-        movie["comprehensive_score"] = round(comprehensive * 10, 1)  # 映射到 0~10 便于展示
+        movie["comprehensive_score"] = round(comprehensive * 10, 1)
         results.append(movie)
 
     results.sort(key=lambda m: m.get("comprehensive_score") or 0, reverse=True)
@@ -236,5 +240,4 @@ class ComprehensiveScorer:
         self.movies = movies
 
     def calc_scores(self) -> list[dict]:
-        """计算所有电影的综合评分。"""
         return calc_comprehensive_rank(self.movies)

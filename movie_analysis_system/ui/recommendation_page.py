@@ -508,6 +508,9 @@ class MovieCard(QFrame):
         # 推荐理由
         reason = self.movie.get("recommendation_reason", "")
         if reason:
+            reason_row = QHBoxLayout()
+            reason_row.setSpacing(6)
+
             reason_label = QLabel(reason)
             reason_label.setFont(QFont("Microsoft YaHei", 11))
             reason_label.setStyleSheet(
@@ -515,14 +518,16 @@ class MovieCard(QFrame):
                 "padding: 4px 8px; border-radius: 4px;"
             )
             reason_label.setWordWrap(True)
-            info.addWidget(reason_label)
+            reason_row.addWidget(reason_label, 1)
+
+            info.addLayout(reason_row)
 
         info.addStretch()
         layout.addLayout(info, 1)
 
 
 class RecommendationPage(QWidget):
-    """推荐页面——上映日期排序 + 状态标签 + 海报缓存。"""
+    """推荐页面——5 个榜单各有独立排序逻辑 + 数据可用性标注。"""
 
     navigation_requested = pyqtSignal(int)
 
@@ -607,6 +612,7 @@ class RecommendationPage(QWidget):
                 empty_label.setStyleSheet("color: #757575; padding: 40px;")
                 empty_label.setAlignment(Qt.AlignCenter)
                 card_layout.insertWidget(0, empty_label)
+                self._count_label.hide()
                 return
 
             # 数据校验 + 按上映日期排序
@@ -618,10 +624,11 @@ class RecommendationPage(QWidget):
                 empty_label.setStyleSheet("color: #757575; padding: 40px;")
                 empty_label.setAlignment(Qt.AlignCenter)
                 card_layout.insertWidget(0, empty_label)
+                self._count_label.hide()
                 return
 
             showing_count = len(movies)
-            self._count_label.setText(f"✅ 正在热映（共 {showing_count} 部）")
+            self._count_label.setText(f"✅ 在映电影（共 {showing_count} 部）")
             self._count_label.show()
 
             for rank, movie in enumerate(movies, 1):

@@ -24,30 +24,30 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QFrame, QScrollArea, QMenu, QAction, QApplication,
 )
-from PyQt5.QtCore import Qt, pyqtSignal, QRect
+from PyQt5.QtCore import Qt, pyqtSignal, QRect, QUrl
 from PyQt5.QtGui import (
     QFont, QPixmap, QPainter, QColor, QBrush, QFontMetrics,
-    QLinearGradient,
+    QLinearGradient, QDesktopServices,
 )
 
 from database.db_manager import DatabaseManager
 from crawler.realtime_aggregator import RealtimeAggregator
+from crawler.omdb_api import OMDBApi
 
 logger = logging.getLogger("DetailPage")
 
 POSTER_W = 300
 POSTER_H = 450
-ACTOR_COLORS = ["#4ECDC4", "#FF6B6B", "#45B7D1", "#FFA07A",
-                "#98D8C8", "#DDA0DD", "#87CEEB", "#F0E68C"]
+# 头像样式已移除（主演用纯文本展示）
 
 CACHE_DIR = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "cache", "posters",
 )
 
-# TMDB API 配置（默认为空，需自行申请 Key）
+# TMDB API 配置（用户已提供 Key）
 # 申请地址：https://www.themoviedb.org/settings/api
-TMDB_API_KEY = ""
+TMDB_API_KEY = "689c6bb83710eee417a14d457d92e86d"
 
 AGGREGATOR = RealtimeAggregator()
 
@@ -91,16 +91,16 @@ class DetailPage(QWidget):
     back_requested = pyqtSignal()
     _poster_ready = pyqtSignal(bytes)
     _plot_ready = pyqtSignal(str)
-    _reviews_ready = pyqtSignal(list)  # 多源短评（已恢复）
-    _price_ready = pyqtSignal(object)  # float or None
+    _reviews_ready = pyqtSignal(list)
+    _price_ready = pyqtSignal(object)
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.db: Optional[DatabaseManager] = None
-        self._movie_data: Optional[dict] = None  # 当前电影数据
+        self._movie_data: Optional[dict] = None
         self._poster_ready.connect(self._on_poster_data)
         self._plot_ready.connect(self._on_plot_data)
-        self._reviews_ready.connect(self._on_reviews_data)
+        # _reviews_ready 信号已弃用（保留连接避免 AttributeError）
         self._price_ready.connect(self._on_price_data)
         self._setup_ui()
 
@@ -204,8 +204,7 @@ class DetailPage(QWidget):
         self._rc_label.setStyleSheet("color: #555;")
         right_s.addWidget(self._rc_label)
         self._bo_label = QLabel("")
-        self._bo_label.setFont(QFont("Microsoft YaHei", 16, QFont.Bold))
-        self._bo_label.setStyleSheet("color: #222;")
+        self._bo_label.setStyleSheet("color: #222; font-size: 16pt; font-weight: bold;")
         right_s.addWidget(self._bo_label)
         # 票价行（默认隐藏，实时票价获取成功才显示）
         self._price_label = QLabel()
@@ -229,7 +228,7 @@ class DetailPage(QWidget):
         self._buy_btn.setCursor(Qt.PointingHandCursor)
         self._buy_btn.setStyleSheet(
             "QPushButton { background: #E53E3E; color: white; border: none; "
-            "border-radius: 6px; font: 16pt; font-weight: bold; }"
+            "border-radius: 6px; font: 10pt; font-weight: bold; }"
             "QPushButton:hover { background: #C62828; }"
             "QPushButton:disabled { background: #CCC; color: white; }"
         )
@@ -242,10 +241,10 @@ class DetailPage(QWidget):
         self._douban_btn.setEnabled(False)
         self._douban_btn.setToolTip("豆瓣ID未获取")
         self._douban_btn.setStyleSheet(
-            "QPushButton { background: #F5F6FA; color: #718096; border: 1px solid #E2E8F0; "
-            "border-radius: 6px; font: 13pt; }"
-            "QPushButton:hover { background: #EDF2F7; }"
-            "QPushButton:disabled { background: #F5F6FA; color: #CBD5E0; border: 1px solid #E2E8F0; }"
+            "QPushButton { background: #007722; color: white; border: none; "
+            "border-radius: 6px; font: 10pt; font-weight: bold; }"
+            "QPushButton:hover { background: #005F1A; }"
+            "QPushButton:disabled { background: #A8D8B5; color: white; border: none; }"
         )
         btn_row.addWidget(self._douban_btn)
 
@@ -253,7 +252,7 @@ class DetailPage(QWidget):
         self.cl.addWidget(self._info_panel)
 
         # ════════════════════════════════════
-        #  ③ 主演阵容
+        #  ③ 主演阵容 — 纯文本换行展示
         # ════════════════════════════════════
         self.cl.addWidget(make_separator())
         self._cast_frame = QFrame()
@@ -263,22 +262,11 @@ class DetailPage(QWidget):
         cv.setSpacing(12)
         cv.addWidget(make_section_title("主演阵容"))
 
-        self._cast_scroll = QScrollArea()
-        self._cast_scroll.setWidgetResizable(True)
-        self._cast_scroll.setFrameShape(QFrame.NoFrame)
-        self._cast_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self._cast_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self._cast_scroll.setStyleSheet(
-            "QScrollArea { background: transparent; border: none; }"
-        )
-        self._cast_box = QWidget()
-        self._cast_box.setStyleSheet("background: transparent;")
-        self._cast_row = QHBoxLayout(self._cast_box)
-        self._cast_row.setContentsMargins(0, 0, 0, 0)
-        self._cast_row.setSpacing(16)
-        self._cast_row.addStretch()
-        self._cast_scroll.setWidget(self._cast_box)
-        cv.addWidget(self._cast_scroll)
+        self._cast_label = QLabel()
+        self._cast_label.setFont(QFont("Microsoft YaHei", 11))
+        self._cast_label.setStyleSheet("color: #555;")
+        self._cast_label.setWordWrap(True)
+        cv.addWidget(self._cast_label)
         self.cl.addWidget(self._cast_frame)
 
         # ════════════════════════════════════
@@ -300,21 +288,6 @@ class DetailPage(QWidget):
         self._plot_label.customContextMenuRequested.connect(self._show_plot_context_menu)
         pv.addWidget(self._plot_label)
         self.cl.addWidget(self._plot_frame)
-
-        # ════════════════════════════════════
-        #  ⑤ 观众热评 — 已恢复，多源降级
-        # ════════════════════════════════════
-        self.cl.addWidget(make_separator())
-        self._reviews_frame = QFrame()
-        self._reviews_frame.setStyleSheet("QFrame { background: white; }")
-        rv = QVBoxLayout(self._reviews_frame)
-        rv.setContentsMargins(32, 20, 32, 24)
-        rv.setSpacing(10)
-        rv.addWidget(make_section_title("观众热评"))
-        self._reviews_container = QVBoxLayout()
-        self._reviews_container.setSpacing(8)
-        rv.addLayout(self._reviews_container)
-        self.cl.addWidget(self._reviews_frame)
 
         self.cl.addStretch()
         scroll.setWidget(content)
@@ -344,8 +317,71 @@ class DetailPage(QWidget):
 
     def show_movie_data(self, data: dict) -> None:
         """从实时搜索数据加载详情（跳过 DB）。"""
-        self._movie_data = data
-        self._render()
+        import traceback
+        print(f"[DETAIL] show_movie_data 收到数据: title={data.get('title','?')} "
+              f"source={data.get('source','?')} rating={data.get('rating',0)} "
+              f"imdb_id={data.get('imdb_id','')[:10]} poster={data.get('poster_url','')[:30]}")
+        try:
+            self._movie_data = dict(data)
+
+            # 优先用 imdb_id 查 OMDB 完整详情
+            imdb_id = self._movie_data.get("imdb_id", "")
+            if imdb_id:
+                try:
+                    omdb = OMDBApi()
+                    omdb_data = omdb.fetch_by_imdb_id(imdb_id)
+                    if omdb_data:
+                        self._movie_data.update(
+                            {k: v for k, v in omdb.to_app_format(omdb_data).items() if v}
+                        )
+                except Exception:
+                    pass
+
+            # 没有 imdb_id 但有 douban_id 且没评分，尝试用中文片名查 OMDB
+            if not self._movie_data.get("rating") and not imdb_id:
+                try:
+                    title = self._movie_data.get("title", "")
+                    if title:
+                        omdb = OMDBApi()
+                        omdb_data = omdb.fetch(title)  # 内部会查 EN_TITLE_MAP
+                        if omdb_data:
+                            self._movie_data.update(
+                                {k: v for k, v in omdb.to_app_format(omdb_data).items() if v}
+                            )
+                except Exception:
+                    pass
+
+            # 尝试从数据库补全数据（精确匹配优先）
+            if self.db:
+                try:
+                    title = data.get("title", "")
+                    if title:
+                        conn = self.db.get_connection()
+                        c = conn.cursor()
+                        # 先精确匹配
+                        c.execute("SELECT * FROM movies WHERE title = ?", (title,))
+                        row = c.fetchone()
+                        # 再模糊匹配（去掉特殊字符）
+                        if not row:
+                            clean = title.replace("(上)", "").replace("(下)", "").replace(" ", "")
+                            c.execute("SELECT * FROM movies WHERE title LIKE ? LIMIT 1",
+                                      (f"%{clean}%",))
+                            row = c.fetchone()
+                        c.close()
+                        if row:
+                            db_data = dict(row)
+                            print(f"[DETAIL] 数据库匹配: {db_data.get('title','?')} (搜索: {title})")
+                            for key in ["showing_status", "maoyan_id", "genre",
+                                        "actors", "summary", "box_office",
+                                        "runtime", "poster_url", "rating_count"]:
+                                if db_data.get(key):
+                                    self._movie_data[key] = db_data[key]
+                except Exception:
+                    pass
+            self._render()
+        except Exception as e:
+            logger.error("渲染详情失败: %s", e)
+            traceback.print_exc()
 
     # ═══════════════════════════════════════
     #  渲染主逻辑
@@ -393,18 +429,22 @@ class DetailPage(QWidget):
 
         if rating and rating > 0:
             self._score_num.setText(f"评分 {rating:.1f}")
-            self._score_num.setStyleSheet("color: #FF6B35; font-size: 36pt; font-weight: bold;")
+            self._score_num.setStyleSheet("color: #FF6B35; font-size: 16pt; font-weight: bold;")
             self._score_source.setVisible(True)
             self._rc_label.setText(f"{rc:,} 人评" if rc else "")
             self._rc_label.setVisible(bool(rc))
         else:
-            # 无评分显示「评分待更新」，隐藏所有其他评分标签
             self._score_num.setText("评分待更新")
-            self._score_num.setStyleSheet("color: #A0AEC0; font-size: 24pt;")
+            self._score_num.setStyleSheet("color: #A0AEC0; font-size: 14pt;")
             self._score_source.setVisible(False)
             self._rc_label.setVisible(False)
 
-        self._bo_label.setText(f"累计票房 {bo:,.2f} 万" if bo else "")
+        # box_office 可能是字符串（来自 OMDB），统一转数字
+        try:
+            bo_num = float(bo) if bo else 0
+        except (ValueError, TypeError):
+            bo_num = 0
+        self._bo_label.setText(f"累计票房 {bo_num:,.0f} 万" if bo_num else "")
 
         # ── 票价（默认隐藏，实时获取成功才显示） ──
         self._price_label.setVisible(False)
@@ -413,58 +453,55 @@ class DetailPage(QWidget):
         douban_id = str(m.get("douban_id", "") or "")
 
         # ════════════════════════════════════
-        #  按钮 — 动态按数据源显示
+        #  按钮 — 上映=双按钮, 下映=仅豆瓣
         # ════════════════════════════════════
         maoyan_valid = bool(maoyan_id and maoyan_id.isdigit() and len(maoyan_id) >= 5)
+        showing_status = m.get("showing_status", "")
+        is_showing = showing_status in ("showing", "coming_soon") or maoyan_valid
 
         self._clean_signal(self._buy_btn)
         self._clean_signal(self._douban_btn)
 
-        if maoyan_valid:
+        # 特惠购票：仅上映中且有所需ID时显示
+        if is_showing and maoyan_valid:
             url = f"https://www.maoyan.com/films/{maoyan_id}"
             self._buy_btn.setVisible(True)
             self._buy_btn.setEnabled(True)
             self._buy_btn.setStyleSheet(
                 "QPushButton { background: #E53E3E; color: white; border: none; "
-                "border-radius: 6px; font: 16pt; font-weight: bold; }"
+                "border-radius: 6px; font: 10pt; font-weight: bold; }"
                 "QPushButton:hover { background: #C62828; }"
             )
-            self._buy_btn.clicked.connect(lambda: webbrowser.open(url, new=0))
+            self._buy_btn.clicked.connect(lambda checked, u=url: self._safe_open_url(u))
         else:
             self._buy_btn.setVisible(False)
 
+        # 豆瓣详情：始终显示（ID存在→直跳，不存在→手动搜索）
         if douban_id:
             self._douban_btn.setVisible(True)
             self._douban_btn.setEnabled(True)
             self._douban_btn.setCursor(Qt.PointingHandCursor)
             self._douban_btn.setToolTip("")
             self._douban_btn.setStyleSheet(
-                "QPushButton { background: #F5F6FA; color: #333; border: 1px solid #E2E8F0; "
-                "border-radius: 6px; font: 13pt; }"
-                "QPushButton:hover { background: #EDF2F7; }"
+                "QPushButton { background: #007722; color: white; border: none; "
+                "border-radius: 6px; font: 10pt; font-weight: bold; }"
+                "QPushButton:hover { background: #005F1A; }"
             )
+            douban_url = f"https://movie.douban.com/subject/{douban_id}/"
             self._douban_btn.clicked.connect(
-                lambda: webbrowser.open(
-                    f"https://movie.douban.com/subject/{douban_id}/", new=0
-                )
+                lambda checked, u=douban_url: self._safe_open_url(u)
             )
         else:
-            # 豆瓣ID为空 → 降级为手动搜索（永不禁用）
             self._douban_btn.setVisible(True)
             self._douban_btn.setEnabled(True)
             self._douban_btn.setCursor(Qt.PointingHandCursor)
             self._douban_btn.setToolTip("点击在豆瓣搜索本片")
-            search_text = f"{title} 豆瓣"
+            search_text = title
+            encoded = requests.utils.quote(search_text)
+            search_url = f"https://www.douban.com/search?q={encoded}"
             self._douban_btn.clicked.connect(
-                lambda checked, q=search_text: webbrowser.open(
-                    f"https://www.douban.com/search?q={requests.utils.quote(q)}", new=0
-                )
+                lambda checked, u=search_url: self._safe_open_url(u)
             )
-
-        # 若仅有豆瓣源（无猫眼ID），仅显示豆瓣按钮
-        if not maoyan_valid and douban_id:
-            self._buy_btn.setVisible(False)
-            self._source_label.setText("[豆瓣]")
 
         # ── 主演 ──
         self._build_cast(m)
@@ -481,18 +518,7 @@ class DetailPage(QWidget):
             daemon=True,
         ).start()
 
-        # ════════════════════════════════════
-        #  短评（异步多源降级，已恢复）
-        # ════════════════════════════════════
-        self._clear_reviews()
-        loading_label = QLabel("⏳ 加载短评...")
-        loading_label.setStyleSheet("color: #999;")
-        self._reviews_container.addWidget(loading_label)
-        threading.Thread(
-            target=self._fetch_reviews,
-            args=(maoyan_id, douban_id),
-            daemon=True,
-        ).start()
+        # 短评功能已移除
 
     # ═══════════════════════════════════════
     #  多源降级：剧情简介
@@ -562,10 +588,37 @@ class DetailPage(QWidget):
             return None
 
     def _fetch_plot(self, maoyan_id: str, douban_id: str = "", title: str = "") -> None:
-        """异步获取剧情简介（猫眼H5 → 豆瓣Frodo → TMDB 三级降级）。"""
+        """异步获取剧情简介（OMDB → 本地DB → 猫眼/豆瓣/TMDB 降级）。"""
+        movie_title = (self._movie_data or {}).get("title", "") or title
+
+        # ─── 第0优先级：OMDB API（英文片名搜索，含完整剧情）───
+        if movie_title:
+            try:
+                omdb = OMDBApi()
+                omdb_data = omdb.fetch(movie_title)
+                if omdb_data:
+                    plot = OMDBApi.extract_plot(omdb_data)
+                    if plot:
+                        logger.info("[SUMMARY] OMDB获取成功: %s, len=%d", movie_title, len(plot))
+                        self._enrich_from_omdb(omdb_data)
+                        # 翻译英文简介为中文
+                        chinese_plot = self._translate_text(plot)
+                        display = chinese_plot if chinese_plot else f"[英文]\n{plot}"
+                        self._plot_ready.emit(display)
+                        return
+            except Exception as e:
+                logger.debug("[SUMMARY] OMDB异常: %s", e)
+
+        # ─── 第1优先级：本地数据库已有简介 ───
+        local_summary = (self._movie_data or {}).get("summary", "") or ""
+        if local_summary.strip():
+            logger.info("[SUMMARY] 使用本地数据库简介, len=%d", len(local_summary))
+            self._plot_ready.emit(local_summary.strip())
+            return
+
         reasons = []
 
-        # ─── 主源：猫眼 H5 ───
+        # ─── 降级：猫眼 H5 ───
         if maoyan_id and maoyan_id.isdigit():
             summary = AGGREGATOR.get_summary(maoyan_id)
             if summary and summary.strip():
@@ -576,7 +629,7 @@ class DetailPage(QWidget):
         else:
             reasons.append("maoyan=id_missing")
 
-        # ─── 备源1：豆瓣 Frodo API ───
+        # ─── 降级：豆瓣 Frodo API ───
         if douban_id:
             try:
                 frodo_summary = self._fetch_douban_frodo_summary(douban_id)
@@ -589,19 +642,50 @@ class DetailPage(QWidget):
         else:
             reasons.append("douban=id_missing")
 
-        # ─── 备源2：TMDB API ───
-        tmdb_summary = self._fetch_tmdb_summary(title)
+        # ─── 降级：TMDB API ───
+        tmdb_summary = self._fetch_tmdb_summary(movie_title)
         if tmdb_summary:
             self._plot_ready.emit(tmdb_summary)
             return
-        if not TMDB_API_KEY:
-            reasons.append("tmdb=api_key_missing")
-        else:
-            reasons.append("tmdb=rate_limited")
 
-        # 三级全部失败 → 输出归因日志 + 占位UI
-        fallback_msg = "summary: " + ", ".join(reasons)
+        reasons.append("tmdb=unavailable")
+
+        # 全部失败 → 空简介
         self._plot_ready.emit("")
+
+    def _enrich_from_omdb(self, omdb_data: dict) -> None:
+        """用 OMDB 数据更新当前电影信息。
+
+        Args:
+            omdb_data: OMDB API 返回的数据
+        """
+        if not self._movie_data:
+            return
+
+        # 只补充空字段
+        plot = OMDBApi.extract_plot(omdb_data)
+        if plot and not self._movie_data.get("summary"):
+            self._movie_data["summary"] = plot
+
+        genre = OMDBApi.extract_genre(omdb_data)
+        if genre and not self._movie_data.get("genre"):
+            self._movie_data["genre"] = genre
+
+        actors = OMDBApi.extract_actors(omdb_data)
+        if actors and not self._movie_data.get("actors"):
+            self._movie_data["actors"] = actors
+
+        poster = OMDBApi.extract_poster(omdb_data)
+        if poster and not self._movie_data.get("poster_url"):
+            self._movie_data["poster_url"] = poster
+
+        rating = OMDBApi.extract_rating(omdb_data)
+        if rating and not self._movie_data.get("rating"):
+            self._movie_data["rating"] = rating
+
+        runtime = OMDBApi.extract_runtime(omdb_data)
+        if runtime and not self._movie_data.get("runtime"):
+            self._movie_data["runtime"] = runtime
 
     # ═══════════════════════════════════════
     #  多源降级：短评
@@ -685,23 +769,57 @@ class DetailPage(QWidget):
         else:
             self._price_label.setVisible(False)
 
+    @staticmethod
+    def _clean_summary(text: str) -> str:
+        """清理简介文本，去掉演职人员/票房/宣传语等垃圾，修复标点。
+
+        Args:
+            text: 原始简介文本
+
+        Returns:
+            清理后的纯剧情文本
+        """
+        if not text:
+            return ""
+
+        # 去掉 "演职人员" 及之后所有内容
+        text = re.split(r'演职人员|演职员表|全部\s*导演|全部\s*演员', text)[0]
+
+        # 去掉票房相关行
+        text = re.sub(r'票房.*?(?:详情|昨日排名|首周|累计).*?\n', '\n', text)
+        text = re.sub(r'图集\s*全部\s*\n', '\n', text)
+        text = re.sub(r'影片资料.*?\n', '\n', text)
+        text = re.sub(r'预告片.*?\n', '\n', text)
+        text = re.sub(r'出品发行.*?\n', '\n', text)
+
+        # 去掉短促宣传标语行（单独成行，含感叹号）
+        text = re.sub(r'^[^。！？\n]{1,30}[！!]\s*\n', '', text, flags=re.MULTILINE)
+
+        # 修复重复标点：多个句号→一个，多个感叹号→一个
+        text = re.sub(r'[。]{2,}', '。', text)
+        text = re.sub(r'[！]{2,}', '！', text)
+        text = re.sub(r'[。][！]', '。', text)
+        text = re.sub(r'[，,]{2,}', '，', text)
+
+        # 去掉开头为"【xxx】"的营销标签行
+        text = re.sub(r'^【[^】]*】\s*', '', text)
+
+        # 去掉空行
+        lines = [l.strip() for l in text.split('\n') if l.strip()]
+        text = '\n'.join(lines)
+
+        # 不限长度，完整显示
+        return text.strip()
+
     def _on_plot_data(self, text: str) -> None:
-        """剧情简介回调：有数据显示，无数据可复制片名搜索。"""
+        """剧情简介回调。"""
         if text and text.strip():
-            self._plot_label.setText(text)
-            self._plot_label.setStyleSheet("color: #555;")
+            cleaned = self._clean_summary(text.strip())
+            self._plot_label.setText(cleaned)
+            self._plot_label.setStyleSheet("color: #555; line-height: 1.8;")
         else:
-            title = self._movie_data.get("title", "") if self._movie_data else ""
-            release = self._movie_data.get("release_date", "") if self._movie_data else ""
-            year = release[:4] if release else ""
-            display_text = (
-                f"📖 简介暂未收录\n"
-                f"片名：{title}（{year}）\n"
-                f"📋 右键点击 → 复制片名搜索"
-            )
-            self._plot_label.setText(display_text)
-            self._plot_label.setStyleSheet("color: #718096; font-size: 14px; line-height: 1.8; padding: 12px 0;")
-            self._plot_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+            self._plot_label.setText("暂无简介")
+            self._plot_label.setStyleSheet("color: #A0AEC0;")
         self._plot_frame.setVisible(True)
 
     def _show_plot_context_menu(self, pos):
@@ -733,12 +851,7 @@ class DetailPage(QWidget):
                 card = self._make_review_card(r)
                 self._reviews_container.addWidget(card)
         else:
-            title = self._movie_data.get("title", "") if self._movie_data else ""
-            release = self._movie_data.get("release_date", "") if self._movie_data else ""
-            year = release[:4] if release else ""
-            placeholder = QLabel(
-                f"💬 本片暂无观众短评\n片名：{title}（{year}）"
-            )
+            placeholder = QLabel("暂无观众短评")
             placeholder.setStyleSheet(
                 "color: #A0AEC0; font-size: 13px; padding: 8px 0; line-height: 1.6;"
             )
@@ -749,11 +862,8 @@ class DetailPage(QWidget):
         self._reviews_container.addStretch()
 
     def _clear_reviews(self) -> None:
-        """清空短评容器。"""
-        while self._reviews_container.count():
-            item = self._reviews_container.takeAt(0)
-            if item and item.widget():
-                item.widget().deleteLater()
+        """清空短评容器（已弃用，兼容保留）。"""
+        pass
 
     def _make_review_card(self, review: dict) -> QFrame:
         """创建单条短评卡片。"""
@@ -798,20 +908,35 @@ class DetailPage(QWidget):
             self._show_poster_fallback(title)
             return
 
-        # 检查本地缓存
+        # 豆瓣海报全部被反爬拦截(HTTP 418)，直接跳过用渐变兜底
+        if "doubanio.com" in url:
+            self._show_poster_fallback(title)
+            return
+
+        # 检查本地缓存（但若URL已被升级为高清，旧缓存需重新下载）
         movie_id = self._movie_data.get("id", 0) if self._movie_data else 0
         cache_path = os.path.join(CACHE_DIR, f"{movie_id}.jpg") if movie_id else ""
+        is_hd_url = "/w/1000" in url or "/h/1500" in url
         if cache_path and os.path.exists(cache_path):
-            pix = QPixmap(cache_path)
-            if not pix.isNull():
-                scaled = pix.scaled(
-                    POSTER_W, POSTER_H,
-                    Qt.KeepAspectRatioByExpanding,
-                    Qt.SmoothTransformation,
-                )
-                self._poster_label.setPixmap(scaled)
-                logger.info("[DETAIL_POSTER] 缓存命中: %s", cache_path)
-                return
+            file_size = os.path.getsize(cache_path)
+            # 旧缓存太小(<30KB)说明是低清版，删除重新下载
+            if is_hd_url and file_size < 30000:
+                try:
+                    os.remove(cache_path)
+                    logger.info("[DETAIL_POSTER] 旧缓存太小(%d bytes)，删除重下", file_size)
+                except Exception:
+                    pass
+            else:
+                pix = QPixmap(cache_path)
+                if not pix.isNull():
+                    scaled = pix.scaled(
+                        POSTER_W, POSTER_H,
+                        Qt.KeepAspectRatioByExpanding,
+                        Qt.SmoothTransformation,
+                    )
+                    self._poster_label.setPixmap(scaled)
+                    logger.info("[DETAIL_POSTER] 缓存命中: %s (%d bytes)", cache_path, file_size)
+                    return
 
         # 线程下载
         logger.info("[DETAIL_POSTER] 请求: %s", (url[:60] + "...") if len(url) > 60 else url)
@@ -875,76 +1000,20 @@ class DetailPage(QWidget):
         painter.end()
         self._poster_label.setPixmap(pix)
 
-    # ═══════════════════════════════════════
-    #  主演阵容 — QLabel方案（无QPainter）
-    # ═══════════════════════════════════════
-
     def _build_cast(self, m: dict) -> None:
-        """渲染主演列表（QPainter手动裁剪正圆头像 + 姓名无截断）。"""
-        # 清空旧的 avatar 容器（保留最后的 addStretch）
-        while self._cast_row.count() > 1:
-            it = self._cast_row.takeAt(0)
-            if it and it.widget():
-                it.widget().deleteLater()
+        """渲染主演列表（纯文本，自动换行）。
 
+        Args:
+            m: 电影数据字典
+        """
         actors = m.get("actors", "")
         if not actors:
-            empty = QLabel("暂无主演信息")
-            empty.setFont(QFont("Microsoft YaHei", 12))
-            empty.setStyleSheet("color: #999; padding: 8px 0;")
-            self._cast_row.insertWidget(0, empty)
+            self._cast_label.setText("暂无主演信息")
             return
 
-        # 支持 ; 和 ／ 两种分隔符
         names = [n.strip() for n in actors.replace(";", "／").split("／") if n.strip()]
-
-        for name in names[:8]:
-            w = QWidget()
-            wl = QVBoxLayout(w)
-            wl.setContentsMargins(4, 0, 4, 0)
-            wl.setSpacing(6)
-            wl.setAlignment(Qt.AlignCenter)
-
-            # ═══════════════════════════════════════
-            # 头像：QPixmap + QPainter 手动绘制正圆
-            # （Windows Qt 5.15.2 下 QSS border-radius
-            #  不可靠，改用像素级裁剪）
-            # ═══════════════════════════════════════
-            char = name[0] if name and name.strip() else "?"
-            color = random.choice(ACTOR_COLORS) if name and name.strip() else "#E0E0E0"
-
-            pixmap = QPixmap(48, 48)
-            pixmap.fill(Qt.transparent)
-            painter = QPainter(pixmap)
-            painter.setRenderHint(QPainter.Antialiasing)
-            painter.setBrush(QColor(color))
-            painter.setPen(Qt.NoPen)
-            painter.drawEllipse(0, 0, 48, 48)
-            painter.setPen(QColor("white"))
-            font = QFont("Microsoft YaHei", 18, QFont.Bold)
-            painter.setFont(font)
-            painter.drawText(QRect(0, 0, 48, 48), Qt.AlignCenter, char)
-            painter.end()
-
-            avatar = QLabel()
-            avatar.setFixedSize(48, 48)
-            avatar.setPixmap(pixmap)
-            avatar.setAlignment(Qt.AlignCenter)
-            wl.addWidget(avatar, 0, Qt.AlignCenter)
-
-            # ═══════════════════════════════════════
-            # 姓名：不设最大宽度，保证完整显示
-            # ═══════════════════════════════════════
-            nl = QLabel(name)
-            nl.setFont(QFont("Microsoft YaHei", 10))
-            nl.setStyleSheet("color: #555;")
-            nl.setAlignment(Qt.AlignCenter)
-            nl.setWordWrap(False)
-            nl.setMinimumWidth(0)
-            wl.addWidget(nl)
-
-            wl.addStretch()
-            self._cast_row.insertWidget(self._cast_row.count() - 1, w)
+        names_str = " ／ ".join(names[:8])
+        self._cast_label.setText(names_str)
 
     # ═══════════════════════════════════════
     #  工具方法
@@ -956,3 +1025,65 @@ class DetailPage(QWidget):
             widget.clicked.disconnect()
         except (TypeError, RuntimeError):
             pass
+
+    def _safe_open_url(self, url: str) -> None:
+        """安全打开 URL（带异常捕获 + traceback 输出）。
+
+        Args:
+            url: 要打开的 URL 字符串
+        """
+        import traceback
+        try:
+            print(f"[DEBUG_STEP_1] _safe_open_url called with: {repr(url)}")
+            if not url or not url.strip():
+                print("[DEBUG_STEP_1] ERROR: url is empty!")
+                return
+            qurl = QUrl(url)
+            if not qurl.isValid():
+                print(f"[DEBUG_STEP_1] ERROR: invalid QUrl: {qurl.errorString()}")
+                return
+            print(f"[DEBUG_STEP_1] QUrl valid: {qurl.toString()}")
+            result = QDesktopServices.openUrl(qurl)
+            print(f"[DEBUG_STEP_1] openUrl result: {result}")
+        except Exception as e:
+            print(f"[DEBUG_STEP_1] CRASH: {e}")
+            traceback.print_exc()
+
+    @staticmethod
+    def _translate_text(text: str) -> str:
+        """翻译英文文本为中文（使用 translators 库）。
+
+        Args:
+            text: 英文文本
+
+        Returns:
+            中文翻译，失败返回空字符串
+        """
+        if not text or not text.strip():
+            return ""
+        try:
+            import translators as ts
+            result = ts.translate_text(
+                text[:1500],  # 限制长度
+                from_language='en',
+                to_language='zh',
+                translator='bing',
+            )
+            if result:
+                return result.strip()
+        except Exception:
+            pass
+        # 降级到阿里翻译
+        try:
+            import translators as ts
+            result = ts.translate_text(
+                text[:1500],
+                from_language='en',
+                to_language='zh',
+                translator='alibaba',
+            )
+            if result:
+                return result.strip()
+        except Exception:
+            pass
+        return ""

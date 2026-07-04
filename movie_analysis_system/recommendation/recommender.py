@@ -5,12 +5,16 @@
 
 推荐模式（5 种）：
   - comprehensive: 综合推荐（多因子加权）
-  - hot: 热门推荐（热度×票房）
-  - high_rating: 高分推荐（纯评分）
-  - best_value: 口碑推荐（评分² × 人数）
-  - value: 性价比推荐（评分×上座率/票价）
+  - hot: 热门推荐（票房×0.6 + 评分人数×0.4）
+  - high_rating: 高分推荐（纯评分降序）
+  - best_value: 口碑推荐（评分² × sqrt(人数)）
+  - value: 性价比推荐（评分/票价，部分模拟数据）
 
-配置区 RANK_WEIGHTS — 所有排名核心参数，方便后期调整。
+数据可用性（在映47部）：
+  评分:    34/47 ✓
+  评分人数: 23/47 ✓
+  票房:    47/47 ✓
+  票价:    23/47 ⚠
 """
 
 import logging
@@ -28,32 +32,39 @@ from recommendation.scorer import (
 logger = logging.getLogger("Recommender")
 
 
-# ═══════════════ 配置区 ═══════════════════════════════════
-RANK_WEIGHTS = {
-    # 综合推荐 — 5 因子权重（总和 ≈ 1.0）
+# 各模式的中文描述与数据标注
+MODE_INFO = {
     "comprehensive": {
-        "rating": 0.35,          # 评分因子
-        "popularity": 0.25,      # 热度因子
-        "reputation": 0.25,      # 口碑因子
-        "price": -0.15,          # 票价因子（负值）
+        "label": "综合推荐",
+        "description": "多因子加权（评分×0.35 + 热度×0.25 + 口碑×0.25 - 票价×0.15）",
+        "data_source": "真实数据",
+        "supported": True,
     },
-    # 热门推荐 — 热度指标权重
     "hot": {
-        "rating_count": 0.60,    # 评分人数
-        "box_office": 0.40,      # 票房
+        "label": "热门推荐",
+        "description": "票房×0.6 + 评分人数×0.4",
+        "data_source": "真实数据（票房47/47部有数据）",
+        "supported": True,
     },
-    # 口碑推荐 — 评分/人数放大参数
-    "reputation": {
-        "rating_power": 2.0,     # 评分指数（>1 放大高分差异）
-        "count_damp": 0.5,       # 人数对数压缩（<1 压缩大数）
+    "high_rating": {
+        "label": "高分推荐",
+        "description": "纯评分降序",
+        "data_source": "真实数据（评分34/47部有数据）",
+        "supported": True,
     },
-    # 性价比推荐 — 分子权重
+    "best_value": {
+        "label": "口碑推荐",
+        "description": "评分² × √评分人数（仅评分也可排序）",
+        "data_source": "真实数据（评分34/47部有数据）",
+        "supported": True,
+    },
     "value": {
-        "rating_w": 0.50,        # 评分权重
-        "seat_rate_w": 0.50,     # 上座率权重
+        "label": "性价比推荐",
+        "description": "评分 / 票价",
+        "data_source": "⚠ 部分模拟数据（票价23/47部有数据，无票价影片使用均值估算）",
+        "supported": True,
     },
 }
-# ═════════════════════════════════════════════════════════
 
 
 class Recommender:
@@ -71,7 +82,7 @@ class Recommender:
         """按指定模式返回推荐列表。
 
         Args:
-            mode: 推荐模式
+            mode: 推荐模式（comprehensive/hot/high_rating/best_value/value）
             limit: 返回条数上限
             **filters: 筛选参数
 
@@ -85,7 +96,7 @@ class Recommender:
         if not movies:
             return []
 
-        # 只展示在映电影（不包含即将上映）
+        # 只展示在映电影
         movies = [
             m for m in movies
             if m.get("showing_status") == "showing"
@@ -95,11 +106,11 @@ class Recommender:
 
         # 按模式选择排名算法
         mode_dispatch = {
-            "high_rating": lambda ms: calc_high_rating_rank(ms),
-            "best_value":  lambda ms: calc_reputation_rank(ms),
-            "hot":         lambda ms: calc_hot_rank(ms),
-            "value":       lambda ms: calc_value_rank(ms),
-            "comprehensive": lambda ms: calc_comprehensive_rank(ms),
+            "high_rating":     lambda ms: calc_high_rating_rank(ms),
+            "best_value":      lambda ms: calc_reputation_rank(ms),
+            "hot":             lambda ms: calc_hot_rank(ms),
+            "value":           lambda ms: calc_value_rank(ms),
+            "comprehensive":   lambda ms: calc_comprehensive_rank(ms),
         }
 
         rank_func = mode_dispatch.get(mode, mode_dispatch["comprehensive"])
@@ -107,54 +118,78 @@ class Recommender:
 
         result = ranked[:limit]
 
-        # 生成推荐理由（只基于真实数据）
+        # 生成推荐理由（模式特有，让各榜单差异化）
         for rank, movie in enumerate(result, 1):
             movie["rank"] = rank
             movie["recommendation_reason"] = self._generate_reason(movie, mode)
-            movie["top_comments"] = []  # 不虚构评论
+            movie["top_comments"] = []
+            movie["mode_info"] = MODE_INFO.get(mode, MODE_INFO["comprehensive"])
 
         return result
 
-    def _generate_reason(self, movie: dict, mode: str) -> str:
-        """生成推荐理由——只使用猫眼真实字段，不虚构。
+    def get_mode_info(self, mode: str) -> dict:
+        """获取指定模式的说明信息。
 
-        格式：评分 · 类型 · 主演 · 上映日期
+        Args:
+            mode: 推荐模式名称
+
+        Returns:
+            模式信息字典
         """
-        showing = movie.get("showing_status") == "showing"
+        return MODE_INFO.get(mode, MODE_INFO["comprehensive"])
+
+    def _generate_reason(self, movie: dict, mode: str) -> str:
+        """生成推荐理由——模式特有格式，让各榜单差异化。
+
+        Args:
+            movie: 电影数据
+            mode: 推荐模式
+
+        Returns:
+            推荐理由字符串
+        """
         rating = movie.get("rating") or 0
         genre = movie.get("genre", "")
-        actors = movie.get("actors", "")
         release_date = movie.get("release_date", "")
         price = movie.get("ticket_price") or 0
 
-        parts = []
+        # 各模式不同的理由格式
+        if mode == "high_rating":
+            # 高分推荐：强调评分
+            if rating >= 9.0:
+                return f"🏆 高分佳作 {rating:.1f}分 · {genre.replace(';', '/') if genre else ''}"
+            return f"⭐ 评分 {rating:.1f} · {genre.replace(';', '/') if genre else ''}"
 
-        # 评分
-        if showing and rating > 0:
-            parts.append(f"猫眼评分 {rating:.1f}")
-        elif showing:
-            parts.append("暂无评分")
-        elif rating > 0:
-            parts.append(f"评分 {rating:.1f}")
+        elif mode == "hot":
+            # 热门推荐：强调票房和关注度
+            box_office = movie.get("box_office") or 0
+            parts = [f"🔥 票房 {box_office:,.0f} 万"]
+            rc = movie.get("rating_count") or 0
+            if rc > 0:
+                parts.append(f"👥 {rc:,} 人关注")
+            return " · ".join(parts)
+
+        elif mode == "best_value":
+            # 口碑推荐：强调评分和人数
+            rc = movie.get("rating_count") or 0
+            if rc > 0:
+                return f"💯 口碑佳作 {rating:.1f}分 · {rc:,} 人评价"
+            return f"💯 评分 {rating:.1f} · {genre.replace(';', '/') if genre else ''}"
+
+        elif mode == "value":
+            # 性价比推荐：强调价格
+            price_str = f"¥{price:.0f}" if price > 0 else "暂无票价"
+            is_sim = movie.get("value_is_simulated", False)
+            tag = " (估算)" if is_sim else ""
+            return f"💰 参考价 {price_str}{tag} · 评分 {rating:.1f}"
+
         else:
-            parts.append("即将上映")
-
-        # 类型
-        if genre:
-            genre_short = genre.replace(";", "/")
-            parts.append(genre_short)
-
-        # 主演（取前2）
-        if actors:
-            actor_list = actors.split(";")[:2]
-            parts.append(" / ".join(actor_list) + " 主演")
-
-        # 上映日期
-        if release_date:
-            parts.append(release_date[:10])
-
-        # 票价（性价比模式特别显示）
-        if mode == "value" and price > 0:
-            parts.append(f"¥{price:.0f} 起")
-
-        return " · ".join(parts)
+            # 综合推荐：标准格式
+            parts = [f"猫眼评分 {rating:.1f}"]
+            if genre:
+                parts.append(genre.replace(";", "/"))
+            if price > 0:
+                parts.append(f"¥{price:.0f}")
+            if release_date:
+                parts.append(release_date[:10])
+            return " · ".join(parts)

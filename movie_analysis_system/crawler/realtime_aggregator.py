@@ -188,8 +188,8 @@ class RealtimeAggregator:
             return self._fallback_search(keyword)
 
     def _fallback_search(self, keyword: str) -> list[dict]:
-        """搜索降级：从本地电影列表模糊匹配。"""
-        logger.info("[FALLBACK] 猫眼搜索降级: 本地模糊匹配 '%s'", keyword)
+        """搜索降级：从本地数据库模糊匹配（不要求 maoyan_id）。"""
+        logger.info("[FALLBACK] 搜索降级: 本地模糊匹配 '%s'", keyword)
         try:
             from database.db_manager import DatabaseManager
             db = DatabaseManager()
@@ -200,16 +200,21 @@ class RealtimeAggregator:
             results = []
             for m in movies:
                 maoyan_id = str(m.get("maoyan_id", "") or "")
-                if not maoyan_id.isdigit() or len(maoyan_id) < 5:
-                    continue
+                douban_id = str(m.get("douban_id", "") or "")
+                has_maoyan = maoyan_id.isdigit() and len(maoyan_id) >= 5
+                has_douban = douban_id.isdigit() and len(douban_id) >= 5
+                source = "猫眼" if has_maoyan else ("豆瓣" if has_douban else "本地数据")
+
                 results.append({
                     "title": m.get("title", ""),
-                    "maoyan_id": maoyan_id,
+                    "maoyan_id": maoyan_id if has_maoyan else "",
+                    "douban_id": douban_id if has_douban else "",
                     "rating": m.get("rating") or 0,
                     "poster_url": m.get("poster_url", ""),
                     "year": (m.get("release_date") or "")[:4],
-                    "source": "猫眼",
+                    "source": source,
                 })
+            logger.info("[FALLBACK] 本地搜索结果: %d 条 (总匹配 %d)", len(results), total)
             return results
         except Exception as e:
             logger.warning("[FALLBACK] 本地搜索失败: %s", e)
