@@ -127,4 +127,4 @@ def create_year_trend_chart(db: DatabaseManager) -> str:
         )
     )
 
-    return engine.render(line, height="330px")
+    return engine.render(line, height="344px")

@@ -93,4 +93,4 @@ def create_top10_chart(db: DatabaseManager) -> str:
         )
     )
 
-    return engine.render(bar, height="390px")
+    return engine.render(bar, height="384px")

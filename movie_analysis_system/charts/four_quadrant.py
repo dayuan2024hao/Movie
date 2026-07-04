@@ -131,4 +131,4 @@ def create_four_quadrant_chart(db: DatabaseManager) -> str:
         ),
     )
 
-    return engine.render(scatter, height="270px")
+    return engine.render(scatter, height="334px")

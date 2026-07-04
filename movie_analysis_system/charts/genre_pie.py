@@ -75,4 +75,4 @@ def create_genre_pie(db: DatabaseManager) -> str:
         )
     )
 
-    return engine.render(pie, height="270px")
+    return engine.render(pie, height="314px")

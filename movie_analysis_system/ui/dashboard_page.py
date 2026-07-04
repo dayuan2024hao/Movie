@@ -3,26 +3,23 @@
 ========
 数据看板主页面 — 9 张图表 + 5 统计卡片 + 洞察摘要 + 数据表格。
 
-布局原则：
-  1. 每个图表模块分配充足固定高度，确保标签/图例/数据点完整可见
-  2. 禁止模块内独立滚动条，仅通过页面右侧全局垂直滚动条浏览
-  3. 自上而下流式堆叠，不强制适配单屏，优先展示完整性
+严格布局规则：
+  1. 无嵌套 QScrollArea — 每个图表容器为纯 QWidget/QFrame
+  2. 每个模块 setFixedHeight(N)，N 保证图表区≥220px
+  3. 整个看板只有最外层一个 QScrollArea 可滚动
+  4. QVBoxLayout 无任何 stretch 参数
+  5. 标题 30px + 图表区 ≥ (N-36)px
 
 模块高度分配：
-  标题区          40px
-  统计卡片 × 5    110px
-  ──────────────────
-  票房 Top 10     400px  (10根横向柱 + 片名标签 + 数值标签)
-  评分分布        300px  (10个评分区间柱 + 顶部数值)
-  类型占比        320px  (饼图 + 图例 + 百分比)
-  票房区间分布    300px  (6个区间柱 + 标签)
-  票价分布        300px  (6个区间柱 + 标签)
-  各类型平均票房  320px  (双柱对比 + 图例)
-  年份趋势分析    340px  (双轴折线 + 图例)
-  四象限分析      320px  (散点 + 四象限分割 + 图例)
-  评分 vs 票房    300px  (散点 + 标签)
-  数据洞察        auto   (自适应高度)
-  数据表格        280px
+  统计卡片 × 5          100px
+  票房 Top 10           420px  (复杂图 ≥360px)
+  评分分布 + 类型占比    350px  (简单图 ≥320px)
+  票房区间 + 票价分布    350px  (简单图 ≥320px)
+  各类型平均票房         380px  (复杂图 ≥360px)
+  年份趋势分析           380px  (复杂图 ≥360px)
+  四象限 + 评分vs票房    370px  (复杂图 ≥360px)
+  数据洞察               auto
+  数据表格               300px
 """
 
 import logging
@@ -47,11 +44,9 @@ from charts import (
 
 logger = logging.getLogger("DashboardPage")
 
-CHART_HEIGHT_DEFAULT = 300
-
 
 class DashboardPage(QWidget):
-    """数据看板 — 9 图表 + 卡片 + 洞察 + 表格，全局滚动。"""
+    """数据看板 — 仅最外层 QScrollArea 可滚动，模块无内部滚动条。"""
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -63,34 +58,38 @@ class DashboardPage(QWidget):
         self.db = db
         self._load_data()
 
-    # ──────────── 工具 ────────────
+    # ──────────── 工具方法 ────────────
 
     @staticmethod
-    def _webview(height: int, obj_name: str = "") -> QWebEngineView:
+    def _make_webview(height: int) -> QWebEngineView:
+        """创建 QWebEngineView，固定高度，无独立滚动。"""
         v = QWebEngineView()
-        v.setObjectName(obj_name or "chartView")
         v.setFixedHeight(height)
-        v.setStyleSheet("background: white; border-radius: 8px;")
+        v.setStyleSheet("background: white; border-radius: 4px;")
         return v
 
     @staticmethod
-    def _chart_card() -> QFrame:
+    def _make_card() -> QFrame:
+        """纯白底圆角容器，无滚动条。"""
         w = QFrame()
         w.setObjectName("chartCard")
         w.setStyleSheet("QFrame#chartCard { background: white; border-radius: 8px; }")
         return w
 
     @staticmethod
-    def _section_title(text: str) -> QLabel:
+    def _make_section_title(text: str) -> QLabel:
+        """图表区域标题，固定 30px。"""
         lbl = QLabel(text)
-        lbl.setFont(QFont("Microsoft YaHei", 16, QFont.Bold))
-        lbl.setStyleSheet("color: #37474F; margin: 4px 0;")
+        lbl.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
+        lbl.setFixedHeight(30)
+        lbl.setStyleSheet("color: #37474F; margin: 0;")
         return lbl
 
-    # ──────────── UI 构建 ────────────
+    # ──────────── 布局构建 ────────────
 
     def _setup_ui(self) -> None:
-        """构建看板页面 — 所有模块自上而下流式排列，全局滚动。"""
+        """构建看板 — 严格流式布局，无 stretch，无嵌套滚动。"""
+        # 最外层全局滚动 — 这是唯一允许的滚动条
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setObjectName("dashboardScroll")
@@ -103,170 +102,190 @@ class DashboardPage(QWidget):
         layout.setContentsMargins(28, 20, 28, 20)
         layout.setSpacing(0)
 
-        # ── 标题 ──
-        title = self._section_title("📊 数据看板")
+        # ────────── 页面标题 ──────────
+        title = QLabel("数据看板")
+        title.setFont(QFont("Microsoft YaHei", 20, QFont.Bold))
         title.setFixedHeight(36)
+        title.setStyleSheet("color: #37474F;")
         layout.addWidget(title)
-        layout.addSpacing(8)
+        layout.addSpacing(12)
 
-        # ═══════════════════════════════════
-        #  行 1：统计卡片（110px）
-        # ═══════════════════════════════════
+        # ═════════════════════════════════════════
+        #  行 1：统计卡片（100px）
+        # ═════════════════════════════════════════
         card_row = QWidget()
-        card_row.setFixedHeight(110)
+        card_row.setFixedHeight(100)
         cl = QHBoxLayout(card_row)
-        cl.setContentsMargins(0, 0, 0, 12)
+        cl.setContentsMargins(0, 0, 0, 8)
         cl.setSpacing(16)
 
-        cards = [
+        cards_def = [
             ("电影总数", "0", "🎬", "#1E88E5"),
             ("总票房(万)", "0", "💰", "#43A047"),
             ("平均评分", "0.0", "⭐", "#FB8C00"),
             ("平均票价(元)", "0", "🎫", "#8E24AA"),
             ("最高评分", "0.0", "🏆", "#E53935"),
         ]
-        for t, v, ic, co in cards:
+        for t, v, ic, co in cards_def:
             card = StatCard(t, v, ic, co)
             self._stat_cards.append(card)
             cl.addWidget(card)
         cl.addStretch()
         layout.addWidget(card_row)
-        layout.addSpacing(16)
+        layout.addSpacing(20)
 
-        # ═══════════════════════════════════
-        #  行 2：票房 Top 10（400px）
-        # ═══════════════════════════════════
-        layout.addWidget(self._section_title("🏆 票房 Top 10"))
-        layout.addSpacing(6)
-        self.top10_view = self._webview(400, "chartTop10")
+        # ═════════════════════════════════════════
+        #  行 2：票房 Top 10（420px）
+        #  复杂图 ≥ 360px → 420px 足量
+        # ═════════════════════════════════════════
+        layout.addWidget(self._make_section_title("🏆 票房 Top 10"))
+        layout.addSpacing(4)
+        self.top10_view = self._make_webview(384)
         layout.addWidget(self.top10_view)
         layout.addSpacing(20)
 
-        # ═══════════════════════════════════
-        #  行 3：评分分布(左) + 类型占比(右) — 320px
-        # ═══════════════════════════════════
+        # ═════════════════════════════════════════
+        #  行 3：评分分布（左） + 类型占比（右）— 350px
+        #  简单图 ≥ 320px → 350px 充足
+        # ═════════════════════════════════════════
         row3 = QWidget()
-        row3.setFixedHeight(320)
+        row3.setFixedHeight(350)
         r3l = QHBoxLayout(row3)
         r3l.setContentsMargins(0, 0, 0, 0)
         r3l.setSpacing(16)
 
         # 左：评分分布
-        r3_left = self._chart_card()
+        r3_left = self._make_card()
         r3ll = QVBoxLayout(r3_left)
         r3ll.setContentsMargins(0, 0, 0, 0)
-        r3_title1 = QLabel("评分分布")
-        r3_title1.setFont(QFont("Microsoft YaHei", 13, QFont.Bold))
-        r3_title1.setStyleSheet("color: #37474F; padding: 8px 12px 0;")
-        r3ll.addWidget(r3_title1)
-        self.rating_view = self._webview(280)
+        r3ll.setSpacing(0)
+        r3t1 = QLabel("评分分布")
+        r3t1.setFont(QFont("Microsoft YaHei", 13, QFont.Bold))
+        r3t1.setFixedHeight(30)
+        r3t1.setStyleSheet("color: #37474F; padding: 6px 12px 0;")
+        r3ll.addWidget(r3t1)
+        self.rating_view = self._make_webview(314)
         r3ll.addWidget(self.rating_view)
-        r3l.addWidget(r3_left, 3)
+        r3l.addWidget(r3_left, 1)
 
         # 右：类型占比
-        r3_right = self._chart_card()
+        r3_right = self._make_card()
         r3rl = QVBoxLayout(r3_right)
         r3rl.setContentsMargins(0, 0, 0, 0)
-        r3_title2 = QLabel("电影类型占比")
-        r3_title2.setFont(QFont("Microsoft YaHei", 13, QFont.Bold))
-        r3_title2.setStyleSheet("color: #37474F; padding: 8px 12px 0;")
-        r3rl.addWidget(r3_title2)
-        self.genre_view = self._webview(280)
+        r3rl.setSpacing(0)
+        r3t2 = QLabel("电影类型占比")
+        r3t2.setFont(QFont("Microsoft YaHei", 13, QFont.Bold))
+        r3t2.setFixedHeight(30)
+        r3t2.setStyleSheet("color: #37474F; padding: 6px 12px 0;")
+        r3rl.addWidget(r3t2)
+        self.genre_view = self._make_webview(314)
         r3rl.addWidget(self.genre_view)
-        r3l.addWidget(r3_right, 2)
+        r3l.addWidget(r3_right, 1)
 
         layout.addWidget(row3)
         layout.addSpacing(20)
 
-        # ═══════════════════════════════════
-        #  行 4：票房区间(左) + 票价分布(右) — 300px
-        # ═══════════════════════════════════
+        # ═════════════════════════════════════════
+        #  行 4：票房区间（左） + 票价分布（右）— 350px
+        #  简单图 ≥ 320px → 350px 充足
+        # ═════════════════════════════════════════
         row4 = QWidget()
-        row4.setFixedHeight(300)
+        row4.setFixedHeight(350)
         r4l = QHBoxLayout(row4)
         r4l.setContentsMargins(0, 0, 0, 0)
         r4l.setSpacing(16)
 
-        r4_left = self._chart_card()
+        r4_left = self._make_card()
         r4ll = QVBoxLayout(r4_left)
         r4ll.setContentsMargins(0, 0, 0, 0)
+        r4ll.setSpacing(0)
         r4t1 = QLabel("票房区间分布")
         r4t1.setFont(QFont("Microsoft YaHei", 13, QFont.Bold))
-        r4t1.setStyleSheet("color: #37474F; padding: 8px 12px 0;")
+        r4t1.setFixedHeight(30)
+        r4t1.setStyleSheet("color: #37474F; padding: 6px 12px 0;")
         r4ll.addWidget(r4t1)
-        self.box_office_range_view = self._webview(260)
+        self.box_office_range_view = self._make_webview(314)
         r4ll.addWidget(self.box_office_range_view)
         r4l.addWidget(r4_left, 1)
 
-        r4_right = self._chart_card()
+        r4_right = self._make_card()
         r4rl = QVBoxLayout(r4_right)
         r4rl.setContentsMargins(0, 0, 0, 0)
+        r4rl.setSpacing(0)
         r4t2 = QLabel("票价区间分布")
         r4t2.setFont(QFont("Microsoft YaHei", 13, QFont.Bold))
-        r4t2.setStyleSheet("color: #37474F; padding: 8px 12px 0;")
+        r4t2.setFixedHeight(30)
+        r4t2.setStyleSheet("color: #37474F; padding: 6px 12px 0;")
         r4rl.addWidget(r4t2)
-        self.price_dist_view = self._webview(260)
+        self.price_dist_view = self._make_webview(314)
         r4rl.addWidget(self.price_dist_view)
         r4l.addWidget(r4_right, 1)
 
         layout.addWidget(row4)
         layout.addSpacing(20)
 
-        # ═══════════════════════════════════
-        #  行 5：各类型平均票房（320px）
-        # ═══════════════════════════════════
-        layout.addWidget(self._section_title("🎬 各类型平均票房"))
-        layout.addSpacing(6)
-        self.genre_bo_view = self._webview(320, "chartGenreBO")
+        # ═════════════════════════════════════════
+        #  行 5：各类型平均票房（380px）
+        #  复杂图（双柱+图例≥ 360px）→ 380px
+        # ═════════════════════════════════════════
+        layout.addWidget(self._make_section_title("🎬 各类型平均票房"))
+        layout.addSpacing(4)
+        self.genre_bo_view = self._make_webview(344)
         layout.addWidget(self.genre_bo_view)
         layout.addSpacing(20)
 
-        # ═══════════════════════════════════
-        #  行 6：年份趋势分析（340px）
-        # ═══════════════════════════════════
-        layout.addWidget(self._section_title("📈 年份趋势分析"))
-        layout.addSpacing(6)
-        self.year_trend_view = self._webview(340, "chartYearTrend")
+        # ═════════════════════════════════════════
+        #  行 6：年份趋势分析（380px）
+        #  复杂图（双轴+图例≥360px）→ 380px
+        # ═════════════════════════════════════════
+        layout.addWidget(self._make_section_title("📈 年份趋势分析"))
+        layout.addSpacing(4)
+        self.year_trend_view = self._make_webview(344)
         layout.addWidget(self.year_trend_view)
         layout.addSpacing(20)
 
-        # ═══════════════════════════════════
-        #  行 7：四象限(左) + 评分vs票房(右) — 320px
-        # ═══════════════════════════════════
+        # ═════════════════════════════════════════
+        #  行 7：四象限（左） + 评分vs票房（右）— 370px
+        #  复杂图 ≥ 360px → 370px
+        # ═════════════════════════════════════════
         row7 = QWidget()
-        row7.setFixedHeight(320)
+        row7.setFixedHeight(370)
         r7l = QHBoxLayout(row7)
         r7l.setContentsMargins(0, 0, 0, 0)
         r7l.setSpacing(16)
 
-        r7_left = self._chart_card()
+        r7_left = self._make_card()
         r7ll = QVBoxLayout(r7_left)
         r7ll.setContentsMargins(0, 0, 0, 0)
+        r7ll.setSpacing(0)
         r7t1 = QLabel("四象限分析")
         r7t1.setFont(QFont("Microsoft YaHei", 13, QFont.Bold))
-        r7t1.setStyleSheet("color: #37474F; padding: 8px 12px 0;")
+        r7t1.setFixedHeight(30)
+        r7t1.setStyleSheet("color: #37474F; padding: 6px 12px 0;")
         r7ll.addWidget(r7t1)
-        self.quadrant_view = self._webview(280)
+        self.quadrant_view = self._make_webview(334)
         r7ll.addWidget(self.quadrant_view)
         r7l.addWidget(r7_left, 1)
 
-        r7_right = self._chart_card()
+        r7_right = self._make_card()
         r7rl = QVBoxLayout(r7_right)
         r7rl.setContentsMargins(0, 0, 0, 0)
+        r7rl.setSpacing(0)
         r7t2 = QLabel("评分 vs 票房")
         r7t2.setFont(QFont("Microsoft YaHei", 13, QFont.Bold))
-        r7t2.setStyleSheet("color: #37474F; padding: 8px 12px 0;")
+        r7t2.setFixedHeight(30)
+        r7t2.setStyleSheet("color: #37474F; padding: 6px 12px 0;")
         r7rl.addWidget(r7t2)
-        self.scatter_view = self._webview(280)
+        self.scatter_view = self._make_webview(334)
         r7rl.addWidget(self.scatter_view)
         r7l.addWidget(r7_right, 1)
 
         layout.addWidget(row7)
         layout.addSpacing(20)
 
-        # ═══════════════════════════════════
-        #  行 8：数据洞察
-        # ═══════════════════════════════════
+        # ═════════════════════════════════════════
+        #  行 8：数据洞察（自适应）
+        # ═════════════════════════════════════════
         self._insight_box = QFrame()
         self._insight_box.setObjectName("insightBox")
         self._insight_box.setStyleSheet(
@@ -279,6 +298,7 @@ class DashboardPage(QWidget):
 
         ins_title = QLabel("📊 数据洞察")
         ins_title.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
+        ins_title.setFixedHeight(26)
         ins_title.setStyleSheet("color: #FFD700;")
         ib.addWidget(ins_title)
 
@@ -291,16 +311,16 @@ class DashboardPage(QWidget):
         layout.addWidget(self._insight_box)
         layout.addSpacing(20)
 
-        # ═══════════════════════════════════
-        #  行 9：数据表格（280px）
-        # ═══════════════════════════════════
-        layout.addWidget(self._section_title("📋 电影数据列表"))
-        layout.addSpacing(6)
+        # ═════════════════════════════════════════
+        #  行 9：数据表格（300px）
+        # ═════════════════════════════════════════
+        layout.addWidget(self._make_section_title("📋 电影数据列表"))
+        layout.addSpacing(4)
         self.movie_table = MovieTable(DatabaseManager())
-        self.movie_table.setMinimumHeight(280)
+        self.movie_table.setMinimumHeight(300)
         layout.addWidget(self.movie_table)
 
-        layout.addStretch()
+        layout.addStretch(0)  # 确保无弹性空间
         scroll.setWidget(content)
 
         main_layout = QVBoxLayout(self)
@@ -315,7 +335,6 @@ class DashboardPage(QWidget):
         try:
             stats = self.db.get_statistics()
 
-            # 更新卡片
             vals = [
                 str(stats["total_movies"]),
                 f'{stats["total_box_office"]:,.0f}',
@@ -326,7 +345,6 @@ class DashboardPage(QWidget):
             for card, v in zip(self._stat_cards, vals):
                 card.set_value(v)
 
-            # 渲染图表
             chart_map = [
                 (self.top10_view, top10_chart.create_top10_chart, "票房Top10"),
                 (self.rating_view, rating_distribution.create_rating_distribution, "评分分布"),
@@ -344,10 +362,10 @@ class DashboardPage(QWidget):
             self._generate_insights(stats)
             self.movie_table.db = self.db
             self.movie_table.load_data()
-            logger.info("看板加载完成（9 张图表 + 洞察）")
+            logger.info("看板加载完成（9 图表 + 洞察，无内部滚动条）")
         except Exception as e:
-            import traceback
             logger.error("看板加载失败: %s", e)
+            import traceback
             traceback.print_exc()
 
     def _render_chart(self, view: QWebEngineView, chart_func, name: str) -> None:
@@ -359,32 +377,26 @@ class DashboardPage(QWidget):
         except Exception as e:
             logger.error("图表 '%s' 失败: %s", name, e)
             view.setHtml(
-                f"<div style='padding:40px;text-align:center;color:#757575;font-size:14px;'>"
+                f"<div style='padding:40px;text-align:center;color:#757575;'>"
                 f"图表加载失败</div>"
             )
 
     def _generate_insights(self, stats: dict) -> None:
         if not stats:
-            self._insight_text.setText("暂无足够数据生成洞察")
+            self._insight_text.setText("暂无足够数据")
             return
         lines = []
-        total = stats.get("total_movies", 0)
-        lines.append(f"📌 目前收录 **{total} 部电影**")
-        avg_r = stats.get("avg_rating", 0)
-        hs = stats.get("highest_rated_score", 0)
-        hn = stats.get("highest_rated", "")
-        tag = "优秀 🎉" if avg_r >= 8.0 else "良好" if avg_r >= 7.0 else "有待提升"
-        lines.append(f"⭐ 平均评分 **{avg_r:.1f}**（{tag}），最高评分 **{hs:.1f}**"
-                     + (f" 《{hn}》" if hn else ""))
-        tb = stats.get("total_box_office", 0)
-        hb = stats.get("highest_box_office", "")
-        hbv = stats.get("highest_box_office_value", 0)
-        lines.append(f"💰 总票房 **{tb:,.0f} 万元**"
-                     + (f"，最高 《{hb}》{hbv:,.0f} 万" if hb else ""))
-        ap = stats.get("avg_ticket_price", 0)
-        if ap:
-            lv = "经济实惠" if ap < 35 else "中等价位" if ap < 50 else "偏高价位"
-            lines.append(f"🎫 平均票价 **{ap:.0f} 元**（{lv}）")
+        lines.append(f"📌 收录 **{stats['total_movies']} 部电影**")
+        ar = stats["avg_rating"]
+        tag = "优秀" if ar >= 8.0 else "良好" if ar >= 7.0 else "有提升空间"
+        lines.append(f"⭐ 均分 **{ar:.1f}**（{tag}），最高 **{stats['highest_rated_score']:.1f}**"
+                     + (f" 《{stats['highest_rated']}》" if stats['highest_rated'] else ""))
+        lines.append(f"💰 总票房 **{stats['total_box_office']:,.0f} 万**"
+                     + (f"，最高 《{stats['highest_box_office']}》{stats['highest_box_office_value']:,.0f} 万"
+                        if stats['highest_box_office'] else ""))
+        if stats.get("avg_ticket_price"):
+            lv = "经济" if stats["avg_ticket_price"] < 35 else "中等" if stats["avg_ticket_price"] < 50 else "偏高"
+            lines.append(f"🎫 均价 **{stats['avg_ticket_price']:.0f} 元**（{lv}）")
         try:
             c = self.db.get_connection().cursor()
             c.execute("SELECT COUNT(*) FROM movies WHERE showing_status='showing'")
@@ -395,7 +407,7 @@ class DashboardPage(QWidget):
             released = c.fetchone()[0]
             c.close()
             if showing > 0:
-                lines.append(f"🎬 正在热映 **{showing} 部**，即将上映 **{coming} 部**，已下映 **{released} 部**")
+                lines.append(f"🎬 热映 **{showing}** 部 · 待映 **{coming}** 部 · 下映 **{released}** 部")
         except Exception:
             pass
-        self._insight_text.setText("　　".join(lines))
+        self._insight_text.setText("　".join(lines))
