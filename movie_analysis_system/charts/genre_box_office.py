@@ -61,7 +61,7 @@ def create_genre_box_office_chart(db: DatabaseManager) -> str:
         Bar(init_opts=opts.InitOpts(width="100%", height="344px", bg_color="#FFFFFF"))
         .add_xaxis(labels)
         .add_yaxis(
-            "平均票房(万)",
+            "平均票房",
             avg_values,
             label_opts=opts.LabelOpts(
                 position="top",
@@ -71,7 +71,7 @@ def create_genre_box_office_chart(db: DatabaseManager) -> str:
             itemstyle_opts=opts.ItemStyleOpts(color="#42A5F5"),
         )
         .add_yaxis(
-            "最高票房(万)",
+            "最高票房",
             max_values,
             label_opts=opts.LabelOpts(
                 position="top",
@@ -83,7 +83,7 @@ def create_genre_box_office_chart(db: DatabaseManager) -> str:
         .set_global_opts(
             title_opts=opts.TitleOpts(
                 title="各类型平均票房",
-                subtitle="蓝色=平均票房，橙色=最高票房",
+                subtitle="单位：万元",
                 pos_left="center",
                 title_textstyle_opts=opts.TextStyleOpts(
                     font_size=16, font_weight="bold", color="#37474F"
@@ -108,8 +108,10 @@ def create_genre_box_office_chart(db: DatabaseManager) -> str:
                 ),
             ),
             legend_opts=opts.LegendOpts(
-                pos_top="30",
-                textstyle_opts=opts.TextStyleOpts(font_size=11),
+                pos_top="32",
+                item_width=20,
+                item_height=18,
+                textstyle_opts=opts.TextStyleOpts(font_size=12),
             ),
         )
     )
