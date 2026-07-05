@@ -110,5 +110,5 @@ def create_price_distribution_chart(db: DatabaseManager) -> str:
             legend_opts=opts.LegendOpts(is_show=False),
         )
     )
-
+    bar.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_right="40").opts]
     return engine.render(bar)

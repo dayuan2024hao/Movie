@@ -130,7 +130,7 @@ class DashboardPage(QWidget):
         content = QWidget()
         content.setObjectName("dashboardContent")
         layout = QVBoxLayout(content)
-        layout.setContentsMargins(28, 20, 28, 20)
+        layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(0)
 
         # ────────── 页面标题 ──────────

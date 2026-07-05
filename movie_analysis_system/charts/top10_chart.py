@@ -86,5 +86,5 @@ def create_top10_chart(db: DatabaseManager) -> str:
             legend_opts=opts.LegendOpts(is_show=False),
         )
     )
-
+    bar.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_right="100").opts]
     return engine.render(bar)

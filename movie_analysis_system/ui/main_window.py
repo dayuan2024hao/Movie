@@ -112,8 +112,8 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.db = db or DatabaseManager()
         self.setWindowTitle("电影票分析系统")
-        self.setMinimumSize(1200, 700)
-        self.resize(1400, 900)
+        self.setMinimumSize(1440, 800)
+        self.resize(1600, 1000)
 
         # 页面索引映射
         self.PAGE_DASHBOARD = 0

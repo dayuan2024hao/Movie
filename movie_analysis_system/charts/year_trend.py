@@ -115,15 +115,16 @@ def create_year_trend_chart(db: DatabaseManager) -> str:
                 textstyle_opts=opts.TextStyleOpts(font_size=11),
             ),
         )
-        .extend_axis(
-            yaxis=opts.AxisOpts(
-                name="平均评分",
-                type_="value",
-                min_=0,
-                max_=10,
-                axislabel_opts=opts.LabelOpts(font_size=11, color="#FF7043"),
-                splitline_opts=opts.SplitLineOpts(is_show=False),
-            )
+    )
+    line.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_right="60").opts]
+    line.extend_axis(
+        yaxis=opts.AxisOpts(
+            name="平均评分",
+            type_="value",
+            min_=0,
+            max_=10,
+            axislabel_opts=opts.LabelOpts(font_size=11, color="#FF7043"),
+            splitline_opts=opts.SplitLineOpts(is_show=False),
         )
     )
 

@@ -104,5 +104,5 @@ def create_scatter_plot(db: DatabaseManager) -> str:
             legend_opts=opts.LegendOpts(is_show=False),
         )
     )
-
+    scatter.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_right="60").opts]
     return engine.render(scatter)
