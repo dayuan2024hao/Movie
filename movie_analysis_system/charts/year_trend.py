@@ -117,7 +117,7 @@ def create_year_trend_chart(db: DatabaseManager) -> str:
             ),
         )
     )
-    line.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_right="60", pos_bottom="30").opts]
+    line.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_right="60").opts]
     line.extend_axis(
         yaxis=opts.AxisOpts(
             name="平均评分",

@@ -131,5 +131,5 @@ def create_four_quadrant_chart(db: DatabaseManager) -> str:
             textstyle_opts=opts.TextStyleOpts(font_size=10),
         ),
     )
-    scatter.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_bottom="28").opts]
+    scatter.options["grid"] = [opts.GridOpts(is_contain_label=True).opts]
     return engine.render(scatter)

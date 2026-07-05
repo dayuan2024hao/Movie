@@ -114,5 +114,5 @@ def create_genre_box_office_chart(db: DatabaseManager) -> str:
             ),
         )
     )
-    bar.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_right="80", pos_bottom="30").opts]
+    bar.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_right="80").opts]
     return engine.render(bar)
