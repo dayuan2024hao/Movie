@@ -52,7 +52,7 @@ def create_scatter_plot(db: DatabaseManager) -> str:
     counts = [d[1] for d in scatter_data]
 
     scatter = (
-        Scatter(init_opts=opts.InitOpts(width="100%", height="334px", bg_color="#FFFFFF"))
+        Scatter(init_opts=opts.InitOpts(width="100%", height="354px", bg_color="#FFFFFF"))
         .add_xaxis([round(r, 1) for r in ratings])
         .add_yaxis(
             "电影",

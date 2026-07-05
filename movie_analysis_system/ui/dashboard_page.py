@@ -270,7 +270,7 @@ class DashboardPage(QWidget):
         # ═════════════════════════════════════════
         layout.addWidget(self._make_section_title("📈 年份趋势分析"))
         layout.addSpacing(4)
-        self.year_trend_view = self._make_webview(344)
+        self.year_trend_view = self._make_webview(364)
         layout.addWidget(self.year_trend_view)
         layout.addSpacing(20)
 
