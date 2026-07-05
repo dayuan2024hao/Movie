@@ -368,9 +368,9 @@ class DashboardPage(QWidget):
 
             vals = [
                 str(stats["total_movies"]),
-                f'{stats["total_box_office"]:,.0f}',
+                f'{stats["total_box_office"]:,.0f} 万',
                 f'{stats["avg_rating"]:.1f}',
-                f'{stats["avg_ticket_price"]:.0f}',
+                f'{stats["avg_ticket_price"]:.0f} 元',
                 f'{stats["highest_rated_score"]:.1f}',
             ]
             for card, v in zip(self._stat_cards, vals):

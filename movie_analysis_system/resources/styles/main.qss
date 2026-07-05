@@ -43,17 +43,17 @@ QWidget#navButtonGroup {
     background-color: transparent;
 }
 
-/* 导航按钮 — 10pt (Windows高DPI适配) + 3px选中竖条 */
+/* 导航按钮 — 9pt + 窄间距适配emoji */
 QPushButton#navButton {
     background-color: transparent;
     color: #4A5568;
     border: none;
     border-left: 3px solid transparent;
     text-align: left;
-    padding: 14px 16px;
-    font-size: 10pt;
+    padding: 10px 12px;
+    font-size: 9pt;
     font-weight: 500;
-    min-height: 48px;
+    min-height: 44px;
 }
 
 QPushButton#navButton:hover {

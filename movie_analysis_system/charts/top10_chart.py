@@ -50,7 +50,8 @@ def create_top10_chart(db: DatabaseManager) -> str:
             label_opts=opts.LabelOpts(
                 position="right",
                 formatter="{c} 万",
-                font_size=12,
+                font_size=11,
+                font_weight="bold",
             ),
             itemstyle_opts=opts.ItemStyleOpts(color=item_colors[::-1]),
         )
@@ -83,13 +84,6 @@ def create_top10_chart(db: DatabaseManager) -> str:
                 ),
             ),
             legend_opts=opts.LegendOpts(is_show=False),
-        )
-        .set_series_opts(
-            label_opts=opts.LabelOpts(
-                position="right",
-                formatter="{c} 万",
-                font_size=11,
-            ),
         )
     )
 

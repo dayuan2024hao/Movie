@@ -97,7 +97,8 @@ def create_genre_box_office_chart(db: DatabaseManager) -> str:
                 formatter="{b}<br/>{a}: {c} 万<br/>{a0}: {c0} 万",
             ),
             xaxis_opts=opts.AxisOpts(
-                axislabel_opts=opts.LabelOpts(font_size=10, color="#37474F", rotate=20),
+                axislabel_opts=opts.LabelOpts(font_size=9, color="#37474F", rotate=45),
+                axisline_opts=opts.AxisLineOpts(is_show=False),
             ),
             yaxis_opts=opts.AxisOpts(
                 name="票房（万元）",

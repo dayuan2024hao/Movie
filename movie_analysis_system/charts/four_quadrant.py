@@ -126,8 +126,12 @@ def create_four_quadrant_chart(db: DatabaseManager) -> str:
             ),
         ),
         legend_opts=opts.LegendOpts(
-            pos_top="30",
-            textstyle_opts=opts.TextStyleOpts(font_size=10),
+            orient="vertical",
+            pos_right="10",
+            pos_top="60",
+            textstyle_opts=opts.TextStyleOpts(font_size=9),
+            item_width=14,
+            item_height=14,
         ),
     )
 

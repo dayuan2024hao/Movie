@@ -50,17 +50,17 @@ class NavButton(QPushButton):
             icon_text: 图标 emoji 字符
             parent: 父组件
         """
-        super().__init__(f"  {icon_text}  {text}", parent)
+        super().__init__(f" {icon_text} {text}", parent)
         self.setCheckable(True)
-        self.setFixedHeight(48)
+        self.setFixedHeight(44)
         self.setCursor(Qt.PointingHandCursor)
         self.setObjectName("navButton")
-        self.setFont(QFont("Microsoft YaHei", 10))
+        self.setFont(QFont("Microsoft YaHei", 9))
         # 字体由 QSS 中 font-size:10pt 控制，此处 setFont 为 QSS 未加载时的备选
 
     def sizeHint(self) -> QSize:
         """返回按钮推荐尺寸。"""
-        return QSize(200, 48)
+        return QSize(200, 44)
 
 
 # ──────────────────────────── 页面占位组件 ────────────────────────────

@@ -46,7 +46,7 @@ class StatCard(QFrame):
         self._color = color
 
         self.setObjectName("statCard")
-        self.setFixedSize(210, 100)
+        self.setFixedSize(250, 100)
         self.setup_ui()
 
     def setup_ui(self) -> None:
