@@ -1,12 +1,11 @@
 """
-评分 vs 票房散点图
-==================
-展示评分与票房之间的关系，帮助发现高评分高票房的优质电影。
-悬停显示电影名称。
+评分 vs 评价人数散点图
+=====================
+展示评分与评价人数之间的关系，帮助发现「口碑好且关注度高」的电影。
+与四象限分析（评分×票房）互补，从不同维度评估电影表现。
 """
 
 import logging
-from typing import Optional
 
 from pyecharts.charts import Scatter
 from pyecharts import options as opts
@@ -18,7 +17,7 @@ logger = logging.getLogger("ScatterPlot")
 
 
 def create_scatter_plot(db: DatabaseManager) -> str:
-    """创建评分 vs 票房散点图的 HTML。
+    """创建评分 vs 评价人数散点图的 HTML。
 
     Args:
         db: 数据库管理器实例
@@ -28,15 +27,14 @@ def create_scatter_plot(db: DatabaseManager) -> str:
     """
     engine = ChartEngine()
 
-    # 查询评分和票房数据
     conn = db.get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
-            SELECT title, rating, box_office
+            SELECT title, rating, rating_count
             FROM movies
-            WHERE rating > 0 AND box_office > 0
-            ORDER BY box_office DESC
+            WHERE rating > 0 AND rating_count > 0
+            ORDER BY rating_count DESC
         """)
         rows = cursor.fetchall()
         data = [dict(row) for row in rows]
@@ -46,31 +44,30 @@ def create_scatter_plot(db: DatabaseManager) -> str:
     if not data:
         return "<div style='padding: 40px; text-align: center; color: #757575; font-size: 14px;'>暂无数据</div>"
 
-    # 准备散点数据
     scatter_data = [
-        [item["rating"], round(item["box_office"], 0), item["title"]]
+        [item["rating"], item["rating_count"], item["title"]]
         for item in data
     ]
     ratings = [d[0] for d in scatter_data]
-    box_offices = [d[1] for d in scatter_data]
+    counts = [d[1] for d in scatter_data]
 
     scatter = (
         Scatter(init_opts=opts.InitOpts(width="100%", height="334px", bg_color="#FFFFFF"))
         .add_xaxis([round(r, 1) for r in ratings])
         .add_yaxis(
             "电影",
-            box_offices,
+            counts,
             symbol_size=10,
             label_opts=opts.LabelOpts(is_show=False),
             itemstyle_opts=opts.ItemStyleOpts(
-                color=CHART_COLORS[0],
+                color=CHART_COLORS[2],
                 opacity=0.7,
             ),
         )
         .set_global_opts(
             title_opts=opts.TitleOpts(
-                title="评分 vs 票房",
-                subtitle="每部电影的评分与票房关系",
+                title="评分 vs 评价人数",
+                subtitle="口碑热度双高（右上）vs 小众佳作（左上）",
                 pos_left="center",
                 title_textstyle_opts=opts.TextStyleOpts(
                     font_size=16, font_weight="bold", color="#37474F"
@@ -84,7 +81,7 @@ def create_scatter_plot(db: DatabaseManager) -> str:
                     function(params) {
                         var idx = params.dataIndex;
                         var data = params.data;
-                        return data[2] + '<br/>评分: ' + data[0] + '<br/>票房: ' + data[1] + ' 万';
+                        return data[2] + '<br/>评分: ' + data[0] + '<br/>评价人数: ' + data[1];
                     }
                 """,
             ),
@@ -98,7 +95,7 @@ def create_scatter_plot(db: DatabaseManager) -> str:
                 ),
             ),
             yaxis_opts=opts.AxisOpts(
-                name="票房（万元）",
+                name="评价人数",
                 axislabel_opts=opts.LabelOpts(font_size=11, color="#757575"),
                 splitline_opts=opts.SplitLineOpts(
                     is_show=True, linestyle_opts=opts.LineStyleOpts(color="#F0F0F0")

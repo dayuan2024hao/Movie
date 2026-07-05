@@ -45,6 +45,40 @@ from charts import (
 logger = logging.getLogger("DashboardPage")
 
 
+class _ChartWebView(QWebEngineView):
+    """QWebEngineView 子类：wheel 事件转发给全局 QScrollArea。
+
+    默认情况下 QWebEngineView 会吞掉鼠标滚轮事件，
+    导致鼠标停留在图表上时无法滚动页面。此子类捕获 wheel 事件，
+    找到最近的 QScrollArea 并驱动其滚动条，实现「滚轮穿透」。
+    """
+
+    def __init__(self, height: int, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self.setFixedHeight(height)
+        self.setStyleSheet("background: white; border-radius: 4px;")
+
+    def wheelEvent(self, event) -> None:
+        """将滚轮事件转发给最近的 QScrollArea。"""
+        scroll_area = self._find_scroll_area()
+        if scroll_area:
+            delta = event.angleDelta().y()
+            sb = scroll_area.verticalScrollBar()
+            sb.setValue(sb.value() - delta)
+            event.accept()
+            return
+        super().wheelEvent(event)
+
+    def _find_scroll_area(self) -> Optional[QScrollArea]:
+        """向上遍历父控件，找到第一个 QScrollArea。"""
+        p: Optional[QWidget] = self.parent()
+        while p is not None:
+            if isinstance(p, QScrollArea):
+                return p
+            p = p.parent()
+        return None
+
+
 class DashboardPage(QWidget):
     """数据看板 — 仅最外层 QScrollArea 可滚动，模块无内部滚动条。"""
 
@@ -62,11 +96,8 @@ class DashboardPage(QWidget):
 
     @staticmethod
     def _make_webview(height: int) -> QWebEngineView:
-        """创建 QWebEngineView，固定高度，无独立滚动。"""
-        v = QWebEngineView()
-        v.setFixedHeight(height)
-        v.setStyleSheet("background: white; border-radius: 4px;")
-        return v
+        """创建图表 WebView（滚轮穿透 + 固定高度）。"""
+        return _ChartWebView(height)
 
     @staticmethod
     def _make_card() -> QFrame:
@@ -271,7 +302,7 @@ class DashboardPage(QWidget):
         r7rl = QVBoxLayout(r7_right)
         r7rl.setContentsMargins(0, 0, 0, 0)
         r7rl.setSpacing(0)
-        r7t2 = QLabel("评分 vs 票房")
+        r7t2 = QLabel("评分 vs 评价人数")
         r7t2.setFont(QFont("Microsoft YaHei", 13, QFont.Bold))
         r7t2.setFixedHeight(30)
         r7t2.setStyleSheet("color: #37474F; padding: 6px 12px 0;")
@@ -386,17 +417,28 @@ class DashboardPage(QWidget):
             self._insight_text.setText("暂无足够数据")
             return
         lines = []
-        lines.append(f"📌 收录 **{stats['total_movies']} 部电影**")
+        lines.append(f"📌 收录 {stats['total_movies']} 部电影")
         ar = stats["avg_rating"]
         tag = "优秀" if ar >= 8.0 else "良好" if ar >= 7.0 else "有提升空间"
-        lines.append(f"⭐ 均分 **{ar:.1f}**（{tag}），最高 **{stats['highest_rated_score']:.1f}**"
-                     + (f" 《{stats['highest_rated']}》" if stats['highest_rated'] else ""))
-        lines.append(f"💰 总票房 **{stats['total_box_office']:,.0f} 万**"
-                     + (f"，最高 《{stats['highest_box_office']}》{stats['highest_box_office_value']:,.0f} 万"
-                        if stats['highest_box_office'] else ""))
-        if stats.get("avg_ticket_price"):
-            lv = "经济" if stats["avg_ticket_price"] < 35 else "中等" if stats["avg_ticket_price"] < 50 else "偏高"
-            lines.append(f"🎫 均价 **{stats['avg_ticket_price']:.0f} 元**（{lv}）")
+        hn = stats.get('highest_rated', '')
+        hs = stats['highest_rated_score']
+        line = f"⭐ 均分 {ar:.1f}（{tag}），最高 {hs:.1f}"
+        if hn:
+            line += f"（{hn}）"
+        lines.append(line)
+
+        tb = stats['total_box_office']
+        hb = stats.get('highest_box_office', '')
+        hbv = stats.get('highest_box_office_value', 0)
+        line = f"💰 总票房 {tb:,.0f} 万"
+        if hb:
+            line += f"，最高 {hb}（{hbv:,.0f} 万）"
+        lines.append(line)
+
+        ap = stats.get('avg_ticket_price')
+        if ap:
+            lv = "经济" if ap < 35 else "中等" if ap < 50 else "偏高"
+            lines.append(f"🎫 均价 {ap:.0f} 元（{lv}）")
         try:
             c = self.db.get_connection().cursor()
             c.execute("SELECT COUNT(*) FROM movies WHERE showing_status='showing'")
@@ -407,7 +449,7 @@ class DashboardPage(QWidget):
             released = c.fetchone()[0]
             c.close()
             if showing > 0:
-                lines.append(f"🎬 热映 **{showing}** 部 · 待映 **{coming}** 部 · 下映 **{released}** 部")
+                lines.append(f"🎬 热映 {showing} 部 · 待映 {coming} 部 · 下映 {released} 部")
         except Exception:
             pass
-        self._insight_text.setText("　".join(lines))
+        self._insight_text.setText("\n".join(lines))
