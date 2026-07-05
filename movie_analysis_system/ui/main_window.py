@@ -32,7 +32,7 @@ from ui.dashboard_page import DashboardPage
 from ui.search_page import SearchPage
 from ui.recommendation_page import RecommendationPage
 from ui.detail_page import DetailPage
-from ui.about_page import AboutPage
+from ui.settings_page import SettingsPage
 
 logger = logging.getLogger("MainWindow")
 
@@ -247,7 +247,9 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(dashboard)        # 0
         self.stack.addWidget(recommendation)   # 1
         self.stack.addWidget(search)           # 2
-        self.stack.addWidget(AboutPage())      # 3
+        settings_page = SettingsPage()
+        settings_page.set_db(self.db)
+        self.stack.addWidget(settings_page)    # 3
         self.stack.addWidget(self.detail_page) # 4
 
         # 连接推荐卡片 → 详情导航
@@ -285,7 +287,7 @@ class MainWindow(QMainWindow):
         self.page_changed.emit(index)
 
         # 状态栏更新
-        page_names = ["数据看板", "电影推荐", "搜索筛选", "关于系统", "电影详情"]
+        page_names = ["数据看板", "电影推荐", "搜索筛选", "系统设置", "电影详情"]
         if index < len(page_names):
             self.statusBar().showMessage(f"当前页面: {page_names[index]}")
 

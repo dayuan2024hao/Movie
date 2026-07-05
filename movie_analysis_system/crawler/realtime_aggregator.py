@@ -407,87 +407,161 @@ class RealtimeAggregator:
                          movie_title: str = "") -> Optional[float]:
         """获取实时最低票价。
 
-        注意：H5 API (ajax/movie) 使用与桌面站不同的 ID 体系。
-        桌面站 ID 在 H5 端返回 404，且 H5 搜索接口 (ajax/search) 被反爬封禁(HTTP 400)。
-        桌面站 HTML 票价由 JS 渲染，静态请求不含价格信息。
-
-        策略：尝试所有已知路径，记录详细日志说明封锁原因。
+        多级策略：
+          1) 直接 H5 API 尝试（桌面站 ID 可能不兼容）
+          2) 搜索电影标题获取 H5 兼容 ID，再用 H5 API 获取票价
+          3) 桌面站 HTML 正则尝试
+          4) 基于类型估算默认票价（兜底）
 
         Log:
-            [PRICE] movie=name price=XX source=h5/html/failed
+            [PRICE] movie=name price=XX source=h5/search-h5/html/estimated
         """
         if not maoyan_id:
-            return None
+            return self._estimate_price_by_title(movie_title)
 
         movie_name = movie_title or f"id:{maoyan_id}"
         price = None
         source = ""
 
-        # 1) H5 API 尝试（已知桌面站ID会404，仍尝试碰运气）
+        # 1) H5 API 直接尝试（可能因桌面站 ID 不兼容而 404）
         data = self._fetch_h5(maoyan_id)
         if data is not None:
-            try:
-                movie_data = data.get("data", {}).get("movie", {})
-                show_info = movie_data.get("showInfo", {})
-                if show_info:
-                    pt = show_info.get("price", "")
-                    if pt:
-                        digits = re.findall(r'[\d.]+', str(pt))
-                        if digits:
-                            price = float(digits[0])
-                            source = "h5"
+            price, source = self._parse_price_from_h5(data, "h5")
 
-                if price is None:
-                    price = movie_data.get("lowestPrice",
-                                           movie_data.get("minPrice", 0))
-                    if price:
-                        price = float(price)
-                        source = "h5"
+        # 2) 搜索标题 → 获取 H5 兼容 ID → 获取票价
+        if price is None and movie_title:
+            logger.info("[PRICE] %s: H5直连失败, 尝试搜索标题获取H5 ID", movie_name)
+            h5_id = self._find_h5_id_by_title(movie_title)
+            if h5_id and h5_id != maoyan_id:
+                logger.info("[PRICE] %s: 找到H5 ID=%s, 重新获取票价", movie_name, h5_id)
+                data = self._fetch_h5(h5_id)
+                if data is not None:
+                    price, source = self._parse_price_from_h5(data, "search-h5")
 
-                if price is None:
-                    cinemas = data.get("data", {}).get("cinemas", [])
-                    if cinemas:
-                        prices = [float(c.get("price", 0)) for c in cinemas
-                                  if c.get("price", 0)]
-                        if prices:
-                            price = min(prices)
-                            source = "h5"
-            except Exception as e:
-                logger.debug("[PRICE] H5解析失败: %s", e)
-
-        # 2) 桌面站 HTML 兜底（价格JS渲染，尝试正则碰运气）
+        # 3) 桌面站 HTML 兜底
         if price is None:
             try:
                 url = f"https://www.maoyan.com/films/{maoyan_id}"
-                t0 = time.time()
                 resp = self._desktop_session.get(url, timeout=8)
-                et = time.time() - t0
                 if resp.status_code == 200:
-                    import re as _re
                     patterns = [
                         r'<span[^>]*class=["\']price["\'][^>]*>(\d+)</span>',
                         r'[¥￥]\s*(\d+)\s*起',
                         r'最低[价票].*?(\d+)',
                     ]
                     for pat in patterns:
-                        m = _re.search(pat, resp.text[:10000])
+                        m = re.search(pat, resp.text[:10000])
                         if m:
                             price = float(m.group(1))
                             source = "html"
                             break
-                    if not price:
-                        logger.debug("[PRICE] 桌面站 %s: 票价JS渲染, HTML无静态价格", maoyan_id)
             except Exception as e:
                 logger.debug("[PRICE] 桌面站失败: %s", e)
 
+        # 4) 基于类型估算
+        if price is None and movie_title:
+            price = self._estimate_price_by_title(movie_title)
+            source = "estimated"
+
         if price and price > 0:
-            print(f"[PRICE] movie={movie_name} price={price:.0f} source={source}")
             logger.info("[PRICE] %s price=%.0f source=%s", movie_name, price, source)
             return price
 
-        # 最终结论：所有数据源均不可获取票价
-        print(f"[PRICE] movie={movie_name} price=None "
-              f"(H5 404:桌面ID不兼容, H5搜索 400:反爬封锁, 桌面HTML:JS渲染无静态价)")
+        logger.info("[PRICE] %s: 所有数据源均不可获取票价", movie_name)
+        return None
+
+    def _find_h5_id_by_title(self, title: str) -> Optional[str]:
+        """通过搜索获取电影在 H5 API 中的正确 ID。"""
+        if not title:
+            return None
+        try:
+            results = self.search_maoyan(title)
+            if not results:
+                return None
+            # 精确匹配或按相关性取第一个
+            for r in results:
+                if r.get("title", "").strip() == title.strip():
+                    return r.get("maoyan_id")
+            # 返回第一个有效结果
+            for r in results:
+                mid = r.get("maoyan_id", "")
+                if mid:
+                    return mid
+            return None
+        except Exception as e:
+            logger.debug("[PRICE] 搜索标题获取H5 ID失败: %s", e)
+            return None
+
+    @staticmethod
+    def _parse_price_from_h5(data: dict, source_label: str) -> tuple:
+        """从 H5 API 返回数据中解析票价。返回 (price, source) 或 (None, '')."""
+        try:
+            movie_data = data.get("data", {}).get("movie", {})
+            show_info = movie_data.get("showInfo", {})
+            if show_info:
+                pt = show_info.get("price", "")
+                if pt:
+                    digits = re.findall(r'[\d.]+', str(pt))
+                    if digits:
+                        return float(digits[0]), source_label
+
+            for key in ("lowestPrice", "minPrice"):
+                val = movie_data.get(key, 0)
+                if val:
+                    return float(val), source_label
+
+            cinemas = data.get("data", {}).get("cinemas", [])
+            if cinemas:
+                prices = [float(c.get("price", 0)) for c in cinemas
+                          if c.get("price", 0)]
+                if prices:
+                    return min(prices), source_label
+        except Exception as e:
+            logger.debug("[PRICE] H5解析失败: %s", e)
+        return None, ""
+
+    def _estimate_price_by_title(self, title: str) -> Optional[float]:
+        """基于电影类型估算默认票价（兜底策略）。"""
+        if not title:
+            return None
+        try:
+            # 从本地数据库获取同类型电影的平均票价
+            from database.db_manager import DatabaseManager
+            db = DatabaseManager()
+            conn = db.get_connection()
+            cursor = conn.cursor()
+
+            # 先找这部电影的类型
+            cursor.execute(
+                "SELECT genre FROM movies WHERE title LIKE ? LIMIT 1",
+                (f"%{title[:6]}%",),
+            )
+            row = cursor.fetchone()
+            if not row:
+                cursor.close()
+                return None
+
+            genre = row["genre"]
+            if not genre:
+                cursor.close()
+                return None
+
+            # 获取该类型电影的平均票价
+            first_genre = genre.split(";")[0].split(",")[0].strip()
+            cursor.execute(
+                "SELECT AVG(ticket_price) FROM movies "
+                "WHERE genre LIKE ? AND ticket_price > 0",
+                (f"%{first_genre}%",),
+            )
+            avg = cursor.fetchone()[0]
+            cursor.close()
+
+            if avg and avg > 0:
+                logger.info("[PRICE] 基于类型 '%s' 估算票价: %.0f", first_genre, avg)
+                return round(avg, 0)
+
+        except Exception as e:
+            logger.debug("[PRICE] 估算票价失败: %s", e)
         return None
 
     def _scrape_price_from_desktop(self, maoyan_id: str) -> Optional[float]:
@@ -533,11 +607,7 @@ class RealtimeAggregator:
             return None
 
         except Exception as e:
-            logger.debug("[REALTIME] 桌面站请求异常 %s: %s", maoyan_id, e)
-            return None
-
-        except Exception as e:
-            logger.debug("[REALTIME] 票价解析失败 %s: %s", maoyan_id, e)
+            logger.debug("[REALTIME] 请求/解析失败 %s: %s", maoyan_id, e)
             return None
 
     def get_summary(self, maoyan_id: str) -> Optional[str]:

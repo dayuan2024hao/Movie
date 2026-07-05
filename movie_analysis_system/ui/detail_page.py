@@ -270,6 +270,24 @@ class DetailPage(QWidget):
         self.cl.addWidget(self._cast_frame)
 
         # ════════════════════════════════════
+        #  ④ 口碑标签（关键词标签云）
+        # ════════════════════════════════════
+        self.cl.addWidget(make_separator())
+        self._tag_frame = QFrame()
+        self._tag_frame.setStyleSheet("QFrame { background: white; }")
+        tv = QVBoxLayout(self._tag_frame)
+        tv.setContentsMargins(32, 20, 32, 20)
+        tv.setSpacing(10)
+        tv.addWidget(make_section_title("口碑标签"))
+        self._tag_container = QWidget()
+        self._tag_layout = QHBoxLayout(self._tag_container)
+        self._tag_layout.setContentsMargins(0, 0, 0, 0)
+        self._tag_layout.setSpacing(8)
+        self._tag_layout.addStretch()
+        tv.addWidget(self._tag_container)
+        self.cl.addWidget(self._tag_frame)
+
+        # ════════════════════════════════════
         #  ④ 剧情简介 — 多源降级（保留区块）
         # ════════════════════════════════════
         self.cl.addWidget(make_separator())
@@ -505,6 +523,9 @@ class DetailPage(QWidget):
 
         # ── 主演 ──
         self._build_cast(m)
+
+        # ── 口碑标签 ──
+        self._build_tags(m)
 
         # ════════════════════════════════════
         #  剧情简介（异步多源降级）
@@ -1014,6 +1035,78 @@ class DetailPage(QWidget):
         names = [n.strip() for n in actors.replace(";", "／").split("／") if n.strip()]
         names_str = " ／ ".join(names[:8])
         self._cast_label.setText(names_str)
+
+    def _build_tags(self, m: dict) -> None:
+        """生成口碑标签（关键词标签云）。
+
+        Args:
+            m: 电影数据字典
+        """
+        # 清空旧标签
+        while self._tag_layout.count() > 1:
+            item = self._tag_layout.takeAt(0)
+            if item and item.widget():
+                item.widget().deleteLater()
+
+        tags = []
+
+        # 类型标签
+        genre = m.get("genre", "")
+        if genre:
+            for g in genre.replace(";", ",").split(","):
+                g = g.strip()
+                if g:
+                    tags.append((g, "#1E88E5"))
+
+        # 评分等级标签
+        rating = m.get("rating") or 0
+        if rating >= 9:
+            tags.append(("🏆 神作", "#E53935"))
+        elif rating >= 8:
+            tags.append(("⭐ 佳作", "#FB8C00"))
+        elif rating >= 7:
+            tags.append(("👍 好评", "#43A047"))
+        elif rating > 0:
+            tags.append(("📊 普通", "#757575"))
+
+        # 票房等级标签
+        bo = m.get("box_office") or 0
+        if bo >= 300000:
+            tags.append(("💥 爆款", "#E53935"))
+        elif bo >= 100000:
+            tags.append(("🔥 热卖", "#FB8C00"))
+        elif bo >= 10000:
+            tags.append(("📈 畅销", "#43A047"))
+        elif bo > 0:
+            tags.append(("📉 小众", "#757575"))
+
+        # 上映状态标签
+        status = m.get("showing_status", "")
+        if status == "showing":
+            tags.append(("🎬 热映中", "#43A047"))
+        elif status == "coming_soon":
+            tags.append(("📅 即将上映", "#FB8C00"))
+
+        # 地区标签
+        region = m.get("region", "")
+        if region:
+            tags.append((f"🌍 {region}", "#8E24AA"))
+
+        # 语言标签
+        lang = m.get("language", "")
+        if lang:
+            tags.append((f"🗣 {lang}", "#00ACC1"))
+
+        # 创建标签组件
+        for text, color in tags:
+            tag = QLabel(f"  {text}  ")
+            tag.setFont(QFont("Microsoft YaHei", 10))
+            tag.setStyleSheet(
+                f"background: {color}20; color: {color}; "
+                f"border: 1px solid {color}40; border-radius: 10px; "
+                f"padding: 2px 6px; margin: 2px;"
+            )
+            self._tag_layout.insertWidget(self._tag_layout.count() - 1, tag)
 
     # ═══════════════════════════════════════
     #  工具方法

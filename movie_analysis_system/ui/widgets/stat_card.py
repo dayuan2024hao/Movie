@@ -14,7 +14,7 @@ from typing import Optional
 
 from PyQt5.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QWidget
 from PyQt5.QtCore import Qt, QSize
-from PyQt5.QtGui import QFont
+from PyQt5.QtGui import QFont, QFontMetrics
 
 logger = logging.getLogger("StatCard")
 
@@ -65,10 +65,10 @@ class StatCard(QFrame):
         text_layout = QVBoxLayout()
         text_layout.setSpacing(0)
 
-        value_label = QLabel(self._value)
-        value_label.setFont(QFont("Microsoft YaHei", 18, QFont.Bold))
+        value_label = QLabel()
         value_label.setStyleSheet(f"color: {self._color};")
         value_label.setObjectName("statValue")
+        self._adjust_font_size(value_label, self._value)
 
         title_label = QLabel(self._title)
         title_label.setFont(QFont("Microsoft YaHei", 10))
@@ -82,8 +82,21 @@ class StatCard(QFrame):
         layout.addLayout(text_layout)
         layout.addStretch()
 
+    def _adjust_font_size(self, label: QLabel, text: str,
+                          max_width: int = 180, base_size: int = 18) -> None:
+        """根据文本宽度自动调整字号，防止溢出不显示。"""
+        font = label.font()
+        for size in range(base_size, 9, -1):  # 向下试探到 9pt
+            font.setPointSize(size)
+            metrics = QFontMetrics(font)
+            text_width = metrics.horizontalAdvance(text)
+            if text_width <= max_width:
+                break
+        label.setFont(font)
+        label.setText(text)
+
     def set_value(self, value: str) -> None:
-        """动态更新卡片显示的数字。
+        """动态更新卡片显示的数字（自动调整字号防截断）。
 
         Args:
             value: 新的数字字符串
@@ -91,7 +104,7 @@ class StatCard(QFrame):
         self._value = value
         value_label = self.findChild(QLabel, "statValue")
         if value_label:
-            value_label.setText(value)
+            self._adjust_font_size(value_label, value)
 
     def set_title(self, title: str) -> None:
         """动态更新卡片标题。
