@@ -256,18 +256,18 @@ class DashboardPage(QWidget):
         layout.addSpacing(20)
 
         # ═════════════════════════════════════════
-        #  行 5：各类型平均票房（380px）
-        #  复杂图（双柱+图例≥ 360px）→ 380px
+        #  行 5：各类型平均票房（400px）
+        #  复杂图（双柱+底部图例）→ 400px
         # ═════════════════════════════════════════
         layout.addWidget(self._make_section_title("🎬 各类型平均票房"))
         layout.addSpacing(4)
-        self.genre_bo_view = self._make_webview(344)
+        self.genre_bo_view = self._make_webview(364)
         layout.addWidget(self.genre_bo_view)
         layout.addSpacing(20)
 
         # ═════════════════════════════════════════
-        #  行 6：年份趋势分析（380px）
-        #  复杂图（双轴+图例≥360px）→ 380px
+        #  行 6：年份趋势分析（400px）
+        #  复杂图（双轴+底部图例）→ 400px
         # ═════════════════════════════════════════
         layout.addWidget(self._make_section_title("📈 年份趋势分析"))
         layout.addSpacing(4)
@@ -280,7 +280,7 @@ class DashboardPage(QWidget):
         #  复杂图 ≥ 360px → 370px
         # ═════════════════════════════════════════
         row7 = QWidget()
-        row7.setFixedHeight(370)
+        row7.setFixedHeight(390)
         r7l = QHBoxLayout(row7)
         r7l.setContentsMargins(0, 0, 0, 0)
         r7l.setSpacing(16)
@@ -294,7 +294,7 @@ class DashboardPage(QWidget):
         r7t1.setFixedHeight(30)
         r7t1.setStyleSheet("color: #37474F; padding: 6px 12px 0;")
         r7ll.addWidget(r7t1)
-        self.quadrant_view = self._make_webview(334)
+        self.quadrant_view = self._make_webview(354)
         r7ll.addWidget(self.quadrant_view)
         r7l.addWidget(r7_left, 1)
 
@@ -307,7 +307,7 @@ class DashboardPage(QWidget):
         r7t2.setFixedHeight(30)
         r7t2.setStyleSheet("color: #37474F; padding: 6px 12px 0;")
         r7rl.addWidget(r7t2)
-        self.scatter_view = self._make_webview(334)
+        self.scatter_view = self._make_webview(354)
         r7rl.addWidget(self.scatter_view)
         r7l.addWidget(r7_right, 1)
 

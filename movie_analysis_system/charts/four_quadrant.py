@@ -68,7 +68,7 @@ def create_four_quadrant_chart(db: DatabaseManager) -> str:
         key = f"{'high' if rh else 'low'}_{'high' if bh else 'low'}"
         quadrants[key]["data"].append([m["rating"], round(m["box_office"], 0), m["title"]])
 
-    scatter = Scatter(init_opts=opts.InitOpts(width="100%", height="334px", bg_color="#FFFFFF"))
+    scatter = Scatter(init_opts=opts.InitOpts(width="100%", height="354px", bg_color="#FFFFFF"))
 
     for qk, qv in quadrants.items():
         if qv["data"]:
@@ -126,11 +126,10 @@ def create_four_quadrant_chart(db: DatabaseManager) -> str:
             ),
         ),
         legend_opts=opts.LegendOpts(
-            pos_bottom="5",
             orient="horizontal",
             item_gap=20,
             textstyle_opts=opts.TextStyleOpts(font_size=10),
         ),
     )
-    scatter.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_bottom="30").opts]
+    scatter.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_bottom="28").opts]
     return engine.render(scatter)

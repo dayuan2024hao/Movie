@@ -58,7 +58,7 @@ def create_genre_box_office_chart(db: DatabaseManager) -> str:
     max_values = [item["max_box_office"] for item in major]
 
     bar = (
-        Bar(init_opts=opts.InitOpts(width="100%", height="344px", bg_color="#FFFFFF"))
+        Bar(init_opts=opts.InitOpts(width="100%", height="364px", bg_color="#FFFFFF"))
         .add_xaxis(labels)
         .add_yaxis(
             "平均票房",
@@ -108,12 +108,11 @@ def create_genre_box_office_chart(db: DatabaseManager) -> str:
                 ),
             ),
             legend_opts=opts.LegendOpts(
-                pos_bottom="5",
                 orient="horizontal",
                 item_gap=30,
                 textstyle_opts=opts.TextStyleOpts(font_size=12),
             ),
         )
     )
-    bar.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_right="80", pos_bottom="40").opts]
+    bar.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_right="80", pos_bottom="30").opts]
     return engine.render(bar)
