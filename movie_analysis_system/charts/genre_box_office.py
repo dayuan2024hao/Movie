@@ -108,12 +108,12 @@ def create_genre_box_office_chart(db: DatabaseManager) -> str:
                 ),
             ),
             legend_opts=opts.LegendOpts(
-                pos_top="32",
-                item_width=20,
-                item_height=18,
+                pos_bottom="5",
+                orient="horizontal",
+                item_gap=30,
                 textstyle_opts=opts.TextStyleOpts(font_size=12),
             ),
         )
     )
-    bar.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_right="80").opts]
+    bar.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_right="80", pos_bottom="40").opts]
     return engine.render(bar)

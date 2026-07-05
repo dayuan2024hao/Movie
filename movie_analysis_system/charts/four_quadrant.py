@@ -126,13 +126,11 @@ def create_four_quadrant_chart(db: DatabaseManager) -> str:
             ),
         ),
         legend_opts=opts.LegendOpts(
-            orient="vertical",
-            pos_right="10",
-            pos_top="60",
-            textstyle_opts=opts.TextStyleOpts(font_size=9),
-            item_width=14,
-            item_height=14,
+            pos_bottom="5",
+            orient="horizontal",
+            item_gap=20,
+            textstyle_opts=opts.TextStyleOpts(font_size=10),
         ),
     )
-    scatter.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_right="100").opts]
+    scatter.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_bottom="30").opts]
     return engine.render(scatter)

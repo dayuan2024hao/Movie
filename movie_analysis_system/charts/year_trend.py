@@ -82,7 +82,7 @@ def create_year_trend_chart(db: DatabaseManager) -> str:
         .set_global_opts(
             title_opts=opts.TitleOpts(
                 title="年份趋势分析",
-                subtitle="上映数量 · 平均评分",
+                subtitle="历年趋势对比",
                 pos_left="center",
                 title_textstyle_opts=opts.TextStyleOpts(
                     font_size=16, font_weight="bold", color="#37474F"
@@ -111,14 +111,14 @@ def create_year_trend_chart(db: DatabaseManager) -> str:
                 ),
             ),
             legend_opts=opts.LegendOpts(
-                pos_top="32",
-                item_width=20,
-                item_height=18,
+                pos_bottom="5",
+                orient="horizontal",
+                item_gap=30,
                 textstyle_opts=opts.TextStyleOpts(font_size=12),
             ),
         )
     )
-    line.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_right="60").opts]
+    line.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_right="60", pos_bottom="40").opts]
     line.extend_axis(
         yaxis=opts.AxisOpts(
             name="平均评分",
