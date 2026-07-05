@@ -142,13 +142,13 @@ class DashboardPage(QWidget):
         layout.addSpacing(12)
 
         # ═════════════════════════════════════════
-        #  行 1：统计卡片（100px）
+        #  行 1：统计卡片（90px）
         # ═════════════════════════════════════════
         card_row = QWidget()
-        card_row.setFixedHeight(100)
+        card_row.setFixedHeight(90)
         cl = QHBoxLayout(card_row)
         cl.setContentsMargins(0, 0, 0, 8)
-        cl.setSpacing(16)
+        cl.setSpacing(10)
 
         cards_def = [
             ("电影总数", "0", "🎬", "#1E88E5"),
@@ -161,7 +161,6 @@ class DashboardPage(QWidget):
             card = StatCard(t, v, ic, co)
             self._stat_cards.append(card)
             cl.addWidget(card)
-        cl.addStretch()
         layout.addWidget(card_row)
         layout.addSpacing(20)
 
@@ -351,7 +350,6 @@ class DashboardPage(QWidget):
         self.movie_table.setMinimumHeight(300)
         layout.addWidget(self.movie_table)
 
-        layout.addStretch(0)  # 确保无弹性空间
         scroll.setWidget(content)
 
         main_layout = QVBoxLayout(self)

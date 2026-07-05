@@ -46,32 +46,32 @@ class StatCard(QFrame):
         self._color = color
 
         self.setObjectName("statCard")
-        self.setFixedSize(250, 100)
+        self.setFixedSize(230, 90)
         self.setup_ui()
 
     def setup_ui(self) -> None:
         """构建卡片内部布局。"""
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(16, 12, 16, 12)
-        layout.setSpacing(12)
+        layout.setContentsMargins(12, 8, 12, 8)
+        layout.setSpacing(8)
 
         # 图标区
         icon_label = QLabel(self._icon)
-        icon_label.setFont(QFont("Microsoft YaHei", 24))
-        icon_label.setFixedSize(40, 40)
+        icon_label.setFont(QFont("Microsoft YaHei", 20))
+        icon_label.setFixedSize(36, 36)
         icon_label.setAlignment(Qt.AlignCenter)
 
         # 文字区
         text_layout = QVBoxLayout()
-        text_layout.setSpacing(2)
+        text_layout.setSpacing(0)
 
         value_label = QLabel(self._value)
-        value_label.setFont(QFont("Microsoft YaHei", 22, QFont.Bold))
+        value_label.setFont(QFont("Microsoft YaHei", 18, QFont.Bold))
         value_label.setStyleSheet(f"color: {self._color};")
         value_label.setObjectName("statValue")
 
         title_label = QLabel(self._title)
-        title_label.setFont(QFont("Microsoft YaHei", 12))
+        title_label.setFont(QFont("Microsoft YaHei", 10))
         title_label.setStyleSheet("color: #757575;")
         title_label.setObjectName("statTitle")
 
