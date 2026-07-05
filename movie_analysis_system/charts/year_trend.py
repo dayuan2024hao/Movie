@@ -57,7 +57,7 @@ def create_year_trend_chart(db: DatabaseManager) -> str:
     avg_ratings = [r["avg_rating"] if r["avg_rating"] else 0 for r in data]
 
     line = (
-        Line(init_opts=opts.InitOpts(bg_color="#FFFFFF"))
+        Line(init_opts=opts.InitOpts(width="100%", height="344px", bg_color="#FFFFFF"))
         .add_xaxis(years)
         .add_yaxis(
             "上映数量",
@@ -127,4 +127,4 @@ def create_year_trend_chart(db: DatabaseManager) -> str:
         )
     )
 
-    return engine.render(line, height="344px")
+    return engine.render(line)

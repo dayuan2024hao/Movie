@@ -42,7 +42,7 @@ def create_top10_chart(db: DatabaseManager) -> str:
     item_colors = [colors[i] if i < len(colors) else "#1E88E5" for i in range(len(data))]
 
     bar = (
-        Bar(init_opts=opts.InitOpts(bg_color="#FFFFFF"))
+        Bar(init_opts=opts.InitOpts(width="100%", height="384px", bg_color="#FFFFFF"))
         .add_xaxis(titles[::-1])  # 反转，让最高的在上面
         .add_yaxis(
             "票房（万元）",
@@ -93,4 +93,4 @@ def create_top10_chart(db: DatabaseManager) -> str:
         )
     )
 
-    return engine.render(bar, height="384px")
+    return engine.render(bar)

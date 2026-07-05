@@ -55,7 +55,7 @@ def create_rating_distribution(db: DatabaseManager) -> str:
     labels = [f"{r}分" for r in all_ratings]
 
     bar = (
-        Bar(init_opts=opts.InitOpts(bg_color="#FFFFFF"))
+        Bar(init_opts=opts.InitOpts(width="100%", height="314px", bg_color="#FFFFFF"))
         .add_xaxis(labels)
         .add_yaxis(
             "电影数量",
@@ -99,4 +99,4 @@ def create_rating_distribution(db: DatabaseManager) -> str:
         )
     )
 
-    return engine.render(bar, height="314px")
+    return engine.render(bar)

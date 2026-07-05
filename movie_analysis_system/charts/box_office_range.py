@@ -67,7 +67,7 @@ def create_box_office_range_chart(db: DatabaseManager) -> str:
     labels = [r[0] for r in RANGES]
 
     bar = (
-        Bar(init_opts=opts.InitOpts(bg_color="#FFFFFF"))
+        Bar(init_opts=opts.InitOpts(width="100%", height="314px", bg_color="#FFFFFF"))
         .add_xaxis(labels)
         .add_yaxis(
             "电影数量",
@@ -114,4 +114,4 @@ def create_box_office_range_chart(db: DatabaseManager) -> str:
         )
     )
 
-    return engine.render(bar, height="314px")
+    return engine.render(bar)

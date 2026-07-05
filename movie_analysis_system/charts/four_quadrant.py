@@ -68,7 +68,7 @@ def create_four_quadrant_chart(db: DatabaseManager) -> str:
         key = f"{'high' if rh else 'low'}_{'high' if bh else 'low'}"
         quadrants[key]["data"].append([m["rating"], round(m["box_office"], 0), m["title"]])
 
-    scatter = Scatter(init_opts=opts.InitOpts(bg_color="#FFFFFF"))
+    scatter = Scatter(init_opts=opts.InitOpts(width="100%", height="334px", bg_color="#FFFFFF"))
 
     for qk, qv in quadrants.items():
         if qv["data"]:
@@ -131,4 +131,4 @@ def create_four_quadrant_chart(db: DatabaseManager) -> str:
         ),
     )
 
-    return engine.render(scatter, height="334px")
+    return engine.render(scatter)

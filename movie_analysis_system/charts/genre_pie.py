@@ -41,7 +41,7 @@ def create_genre_pie(db: DatabaseManager) -> str:
         pie_data.append(("其他", others_count))
 
     pie = (
-        Pie(init_opts=opts.InitOpts(bg_color="#FFFFFF"))
+        Pie(init_opts=opts.InitOpts(width="100%", height="314px", bg_color="#FFFFFF"))
         .add(
             series_name="电影类型",
             data_pair=pie_data,
@@ -75,4 +75,4 @@ def create_genre_pie(db: DatabaseManager) -> str:
         )
     )
 
-    return engine.render(pie, height="314px")
+    return engine.render(pie)
