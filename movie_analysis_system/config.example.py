@@ -11,3 +11,9 @@ OMDB_API_KEY = "your_omdb_api_key_here"
 # ─── TMDB API ───
 # 从 www.themoviedb.org 注册获取
 TMDB_API_KEY = "your_tmdb_api_key_here"
+
+# ─── DeepSeek API ───
+# 从 platform.deepseek.com/api_keys 获取
+# 支持 OpenAI 兼容格式，可替换为其他兼容 API
+DEEPSEEK_API_KEY = "sk-your-api-key-here"
+DEEPSEEK_BASE_URL = "https://api.deepseek.com"

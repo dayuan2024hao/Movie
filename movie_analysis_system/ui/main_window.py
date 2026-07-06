@@ -33,6 +33,7 @@ from ui.search_page import SearchPage
 from ui.recommendation_page import RecommendationPage
 from ui.detail_page import DetailPage
 from ui.settings_page import SettingsPage
+from ui.ai_chat_page import AIChatPage
 
 logger = logging.getLogger("MainWindow")
 
@@ -119,8 +120,9 @@ class MainWindow(QMainWindow):
         self.PAGE_DASHBOARD = 0
         self.PAGE_RECOMMEND = 1
         self.PAGE_SEARCH = 2
-        self.PAGE_ABOUT = 3
-        self.PAGE_DETAIL = 4
+        self.PAGE_AI_CHAT = 3    # AI 推荐（新增）
+        self.PAGE_ABOUT = 4      # 关于系统（原 3）
+        self.PAGE_DETAIL = 5     # 电影详情（原 4）
 
         # 导航按钮列表
         self._nav_buttons: list[NavButton] = []
@@ -190,6 +192,7 @@ class MainWindow(QMainWindow):
             ("数据看板", "📊"),
             ("电影推荐", "⭐"),
             ("搜索筛选", "🔍"),
+            ("AI 推荐", "🤖"),
             ("关于系统", "👤"),
         ]
 
@@ -237,26 +240,32 @@ class MainWindow(QMainWindow):
         recommendation = RecommendationPage()
         recommendation.set_db(self.db)
         search = SearchPage()
+        ai_chat = AIChatPage()
+        ai_chat.set_db(self.db)
         self.detail_page = DetailPage()
         self.detail_page.db = self.db
         self.detail_page.back_requested.connect(
             lambda: self.switch_page(self._prev_page)
         )
 
-        # 添加 5 个页面（0=看板, 1=推荐, 2=搜索, 3=关于, 4=详情）
+        # 添加 6 个页面（0=看板, 1=推荐, 2=搜索, 3=AI推荐, 4=关于, 5=详情）
         self.stack.addWidget(dashboard)        # 0
         self.stack.addWidget(recommendation)   # 1
         self.stack.addWidget(search)           # 2
+        self.stack.addWidget(ai_chat)          # 3
         settings_page = SettingsPage()
         settings_page.set_db(self.db)
-        self.stack.addWidget(settings_page)    # 3
-        self.stack.addWidget(self.detail_page) # 4
+        self.stack.addWidget(settings_page)    # 4
+        self.stack.addWidget(self.detail_page) # 5
 
         # 连接推荐卡片 → 详情导航
         recommendation.navigation_requested.connect(self.show_movie_detail)
 
         # 连接搜索 → 详情导航（支持 dict 数据传递）
         search.navigation_requested.connect(self.show_movie_detail_from_data)
+
+        # 连接 AI 推荐 → 详情导航
+        ai_chat.navigation_requested.connect(self.show_movie_detail)
 
         content_layout.addWidget(self.stack)
 
@@ -268,7 +277,7 @@ class MainWindow(QMainWindow):
         """切换到指定页面。
 
         Args:
-            index: 页面索引（0=看板, 1=搜索, 2=推荐, 3=关于, 4=详情）
+            index: 页面索引（0=看板, 1=推荐, 2=搜索, 3=AI推荐, 4=关于, 5=详情）
         """
         if index < 0 or index >= self.stack.count():
             logger.warning("无效页面索引: %d", index)
@@ -287,7 +296,7 @@ class MainWindow(QMainWindow):
         self.page_changed.emit(index)
 
         # 状态栏更新
-        page_names = ["数据看板", "电影推荐", "搜索筛选", "系统设置", "电影详情"]
+        page_names = ["数据看板", "电影推荐", "搜索筛选", "AI 推荐", "系统设置", "电影详情"]
         if index < len(page_names):
             self.statusBar().showMessage(f"当前页面: {page_names[index]}")
 
