@@ -55,12 +55,6 @@ class MovieTable(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # 标题
-        title_label = QLabel("电影数据列表")
-        title_label.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
-        title_label.setStyleSheet("color: #37474F; margin-bottom: 8px;")
-        layout.addWidget(title_label)
-
         # 表格
         self.table = QTableWidget()
         self.table.setObjectName("movieTable")

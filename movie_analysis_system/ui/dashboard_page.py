@@ -122,9 +122,9 @@ class DashboardPage(QWidget):
     @staticmethod
     def _make_section_title(text: str) -> QLabel:
         lbl = QLabel(text)
-        lbl.setFont(QFont("Microsoft YaHei", 15, QFont.Bold))
-        lbl.setFixedHeight(38)
-        lbl.setStyleSheet("color: #37474F; padding: 6px 0 0 0;")
+        lbl.setFont(QFont("Microsoft YaHei", 17, QFont.Bold))
+        lbl.setFixedHeight(46)
+        lbl.setStyleSheet("color: #37474F; padding: 10px 0 0 0;")
         return lbl
 
     # ──────────── 工具栏 ────────────
@@ -415,16 +415,16 @@ class DashboardPage(QWidget):
         m1_layout.setContentsMargins(0, 0, 0, 0)
         m1_layout.setSpacing(0)
         m1_layout.addWidget(self._make_section_title("🏆 票房 Top 10"))
-        m1_layout.addSpacing(4)
+        m1_layout.addSpacing(10)
         self.top10_view = self._make_webview(440)
         m1_layout.addWidget(self.top10_view)
         self._content_layout.addWidget(m1)
-        self._content_layout.addSpacing(16)
+        self._content_layout.addSpacing(20)
         self._modules["top10"] = m1
 
         # 模块 2: 评分分布 + 类型占比
         m2 = QWidget()
-        m2.setFixedHeight(420)
+        m2.setFixedHeight(440)
         m2_layout = QHBoxLayout(m2)
         m2_layout.setContentsMargins(0, 0, 0, 0)
         m2_layout.setSpacing(16)
@@ -434,10 +434,11 @@ class DashboardPage(QWidget):
         r3ll.setContentsMargins(0, 0, 0, 0)
         r3ll.setSpacing(0)
         r3t1 = QLabel("评分分布")
-        r3t1.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
-        r3t1.setFixedHeight(36)
-        r3t1.setStyleSheet("color: #37474F; padding: 8px 12px 0;")
+        r3t1.setFont(QFont("Microsoft YaHei", 15, QFont.Bold))
+        r3t1.setFixedHeight(40)
+        r3t1.setStyleSheet("color: #37474F; padding: 10px 16px 0;")
         r3ll.addWidget(r3t1)
+        r3ll.addSpacing(8)
         self.rating_view = self._make_webview(370)
         r3ll.addWidget(self.rating_view)
         m2_layout.addWidget(r3_left, 1)
@@ -447,20 +448,21 @@ class DashboardPage(QWidget):
         r3rl.setContentsMargins(0, 0, 0, 0)
         r3rl.setSpacing(0)
         r3t2 = QLabel("电影类型占比")
-        r3t2.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
-        r3t2.setFixedHeight(36)
-        r3t2.setStyleSheet("color: #37474F; padding: 8px 12px 0;")
+        r3t2.setFont(QFont("Microsoft YaHei", 15, QFont.Bold))
+        r3t2.setFixedHeight(40)
+        r3t2.setStyleSheet("color: #37474F; padding: 10px 16px 0;")
         r3rl.addWidget(r3t2)
+        r3rl.addSpacing(8)
         self.genre_view = self._make_webview(370)
         r3rl.addWidget(self.genre_view)
         m2_layout.addWidget(r3_right, 1)
         self._content_layout.addWidget(m2)
-        self._content_layout.addSpacing(16)
+        self._content_layout.addSpacing(20)
         self._modules["rating_genre"] = m2
 
         # 模块 3: 票房区间 + 票价分布
         m3 = QWidget()
-        m3.setFixedHeight(420)
+        m3.setFixedHeight(440)
         m3_layout = QHBoxLayout(m3)
         m3_layout.setContentsMargins(0, 0, 0, 0)
         m3_layout.setSpacing(16)
@@ -470,10 +472,11 @@ class DashboardPage(QWidget):
         r4ll.setContentsMargins(0, 0, 0, 0)
         r4ll.setSpacing(0)
         r4t1 = QLabel("票房区间分布")
-        r4t1.setFont(QFont("Microsoft YaHei", 13, QFont.Bold))
-        r4t1.setFixedHeight(30)
-        r4t1.setStyleSheet("color: #37474F; padding: 6px 12px 0;")
+        r4t1.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
+        r4t1.setFixedHeight(36)
+        r4t1.setStyleSheet("color: #37474F; padding: 8px 16px 0;")
         r4ll.addWidget(r4t1)
+        r4ll.addSpacing(6)
         self.box_office_range_view = self._make_webview(370)
         r4ll.addWidget(self.box_office_range_view)
         m3_layout.addWidget(r4_left, 1)
@@ -483,15 +486,16 @@ class DashboardPage(QWidget):
         r4rl.setContentsMargins(0, 0, 0, 0)
         r4rl.setSpacing(0)
         r4t2 = QLabel("票价区间分布")
-        r4t2.setFont(QFont("Microsoft YaHei", 13, QFont.Bold))
-        r4t2.setFixedHeight(30)
-        r4t2.setStyleSheet("color: #37474F; padding: 6px 12px 0;")
+        r4t2.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
+        r4t2.setFixedHeight(36)
+        r4t2.setStyleSheet("color: #37474F; padding: 8px 16px 0;")
         r4rl.addWidget(r4t2)
+        r4rl.addSpacing(6)
         self.price_dist_view = self._make_webview(370)
         r4rl.addWidget(self.price_dist_view)
         m3_layout.addWidget(r4_right, 1)
         self._content_layout.addWidget(m3)
-        self._content_layout.addSpacing(16)
+        self._content_layout.addSpacing(20)
         self._modules["bo_price"] = m3
 
         # 模块 4: 各类型平均票房
@@ -500,11 +504,11 @@ class DashboardPage(QWidget):
         m4_layout.setContentsMargins(0, 0, 0, 0)
         m4_layout.setSpacing(0)
         m4_layout.addWidget(self._make_section_title("🎬 各类型平均票房"))
-        m4_layout.addSpacing(4)
+        m4_layout.addSpacing(10)
         self.genre_bo_view = self._make_webview(420)
         m4_layout.addWidget(self.genre_bo_view)
         self._content_layout.addWidget(m4)
-        self._content_layout.addSpacing(16)
+        self._content_layout.addSpacing(20)
         self._modules["genre_bo"] = m4
 
         # 模块 5: 年份趋势分析
@@ -513,11 +517,11 @@ class DashboardPage(QWidget):
         m5_layout.setContentsMargins(0, 0, 0, 0)
         m5_layout.setSpacing(0)
         m5_layout.addWidget(self._make_section_title("📈 年份趋势分析"))
-        m5_layout.addSpacing(4)
+        m5_layout.addSpacing(10)
         self.year_trend_view = self._make_webview(420)
         m5_layout.addWidget(self.year_trend_view)
         self._content_layout.addWidget(m5)
-        self._content_layout.addSpacing(16)
+        self._content_layout.addSpacing(20)
         self._modules["year_trend"] = m5
 
         # 模块 6: 四象限分析（独立全宽）
@@ -526,11 +530,11 @@ class DashboardPage(QWidget):
         m6_layout.setContentsMargins(0, 0, 0, 0)
         m6_layout.setSpacing(0)
         m6_layout.addWidget(self._make_section_title("🎯 四象限分析"))
-        m6_layout.addSpacing(4)
+        m6_layout.addSpacing(10)
         self.quadrant_view = self._make_webview(410)
         m6_layout.addWidget(self.quadrant_view)
         self._content_layout.addWidget(m6)
-        self._content_layout.addSpacing(16)
+        self._content_layout.addSpacing(20)
         self._modules["quadrant"] = m6
 
         # 模块 7: 评分 vs 评价人数（独立全宽）
@@ -539,11 +543,11 @@ class DashboardPage(QWidget):
         m7_layout.setContentsMargins(0, 0, 0, 0)
         m7_layout.setSpacing(0)
         m7_layout.addWidget(self._make_section_title("📊 评分 vs 评价人数"))
-        m7_layout.addSpacing(4)
+        m7_layout.addSpacing(10)
         self.scatter_view = self._make_webview(410)
         m7_layout.addWidget(self.scatter_view)
         self._content_layout.addWidget(m7)
-        self._content_layout.addSpacing(16)
+        self._content_layout.addSpacing(20)
         self._modules["scatter"] = m7
 
         # 模块 8: 档期专题分析
@@ -552,11 +556,11 @@ class DashboardPage(QWidget):
         m7_layout.setContentsMargins(0, 0, 0, 0)
         m7_layout.setSpacing(0)
         m7_layout.addWidget(self._make_section_title("📅 档期专题分析"))
-        m7_layout.addSpacing(4)
+        m7_layout.addSpacing(10)
         self.season_view = self._make_webview(420)
         m7_layout.addWidget(self.season_view)
         self._content_layout.addWidget(m7)
-        self._content_layout.addSpacing(16)
+        self._content_layout.addSpacing(20)
         self._modules["season"] = m7
 
         # 模块 9: 数据洞察
