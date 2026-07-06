@@ -264,8 +264,11 @@ class MainWindow(QMainWindow):
         # 连接搜索 → 详情导航（支持 dict 数据传递）
         search.navigation_requested.connect(self.show_movie_detail_from_data)
 
-        # 连接 AI 推荐 → 详情导航
+        # 连接 AI 推荐 → 详情导航（库内电影）
         ai_chat.navigation_requested.connect(self.show_movie_detail)
+
+        # 连接 AI 推荐 → 详情导航（外源爬取电影）
+        ai_chat.external_movie_requested.connect(self.show_movie_detail_from_data)
 
         content_layout.addWidget(self.stack)
 
