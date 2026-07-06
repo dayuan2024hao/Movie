@@ -117,10 +117,7 @@ class CrawlController:
                 except Exception as e:
                     logger.warning("[CRAWL] 写入失败 %s: %s", title, e)
 
-            # ── 阶段3：标记旧数据为 released ──
-            self._mark_old_released(all_movies)
-
-            # ── 阶段4：更新 last_crawl_time ──
+            # ── 阶段3：更新 last_crawl_time ──
             now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             try:
                 conn = self.db.get_connection()

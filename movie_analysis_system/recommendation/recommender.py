@@ -96,7 +96,7 @@ class Recommender:
         if not movies:
             return []
 
-        # 只展示在映电影
+        # 只展示在映电影（包含爬虫的无评分新片，评分器内部会过滤）
         movies = [
             m for m in movies
             if m.get("showing_status") == "showing"
@@ -115,6 +115,12 @@ class Recommender:
 
         rank_func = mode_dispatch.get(mode, mode_dispatch["comprehensive"])
         ranked = rank_func(movies)
+
+        # 猫眼爬取的在映电影优先展示（maoyan_id 不以 1490 开头即为爬虫数据）
+        def _is_crawled(m):
+            mid = str(m.get("maoyan_id", ""))
+            return bool(mid and not mid.startswith("1490"))
+        ranked.sort(key=lambda m: (0 if _is_crawled(m) else 1, -m.get("score", m.get("rating", 0))))
 
         result = ranked[:limit]
 
@@ -161,13 +167,14 @@ class Recommender:
             return f"⭐ 评分 {rating:.1f} · {genre.replace(';', '/') if genre else ''}"
 
         elif mode == "hot":
-            # 热门推荐：强调票房和关注度
+            # 热门推荐：强调票房
             box_office = movie.get("box_office") or 0
-            parts = [f"🔥 票房 {box_office:,.0f} 万"]
             rc = movie.get("rating_count") or 0
+            if box_office > 0:
+                return f"🔥 票房 {box_office:,.0f} 万"
             if rc > 0:
-                parts.append(f"👥 {rc:,} 人关注")
-            return " · ".join(parts)
+                return f"🎬 评分 {rating:.1f} · 近期上映"
+            return "📈 即将上映"
 
         elif mode == "best_value":
             # 口碑推荐：强调评分和人数
@@ -185,7 +192,7 @@ class Recommender:
 
         else:
             # 综合推荐：标准格式
-            parts = [f"猫眼评分 {rating:.1f}"]
+            parts = [f"评分 {rating:.1f}"]
             if genre:
                 parts.append(genre.replace(";", "/"))
             if price > 0:

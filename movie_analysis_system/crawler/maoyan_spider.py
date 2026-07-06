@@ -76,15 +76,15 @@ class MaoyanSpider:
             resp = self._session.get(url, params=params, timeout=TIMEOUT)
             if resp.status_code != 200:
                 logger.warning("[MAOYAN] 列表请求失败: HTTP %d", resp.status_code)
-                return self._mock_list()
+                return []
 
             movies = self._parse_list(resp.text)
             logger.info("[MAOYAN] 获取 %d 部电影 (HTTP %d)", len(movies), resp.status_code)
-            return movies[:limit] if movies else self._mock_list()
+            return movies[:limit] if movies else []
 
         except requests.RequestException as e:
             logger.warning("[MAOYAN] 请求异常: %s", e)
-            return self._mock_list()
+            return []
 
     def _parse_list(self, html: str) -> list[dict]:
         """解析热映列表 HTML。

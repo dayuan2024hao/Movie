@@ -122,104 +122,95 @@ class DashboardPage(QWidget):
     @staticmethod
     def _make_section_title(text: str) -> QLabel:
         lbl = QLabel(text)
-        lbl.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
-        lbl.setFixedHeight(30)
-        lbl.setStyleSheet("color: #37474F; margin: 0;")
+        lbl.setFont(QFont("Microsoft YaHei", 15, QFont.Bold))
+        lbl.setFixedHeight(38)
+        lbl.setStyleSheet("color: #37474F; padding: 6px 0 0 0;")
         return lbl
 
     # ──────────── 工具栏 ────────────
 
     def _setup_toolbar(self, layout: QVBoxLayout) -> None:
-        """创建工具栏：数据源状态 + 导出/设置按钮。"""
+        """创建工具栏：数据源状态 + 年份筛选 + 功能按钮组。"""
         toolbar = QWidget()
-        toolbar.setFixedHeight(40)
+        toolbar.setObjectName("dashboardToolbar")
         toolbar.setStyleSheet(
-            "background: white; border-radius: 8px; "
-            "border: 1px solid #E0E0E0;"
+            "QWidget#dashboardToolbar { background: white; border-radius: 8px; "
+            "border: 1px solid #E0E0E0; }"
         )
+        # 主布局：HBoxLayout 实现 flex 效果
+        toolbar.setMinimumWidth(700)  # 保证所有控件完整显示的最小宽度
         t_layout = QHBoxLayout(toolbar)
-        t_layout.setContentsMargins(12, 4, 12, 4)
+        t_layout.setContentsMargins(14, 6, 14, 6)
+        t_layout.setSpacing(8)
 
-        # 左侧：数据源状态 + 年份筛选
+        # ── 左侧区：状态标签（flex: 1，可收缩，不换行） ──
         self._status_indicator = QLabel("📡 数据就绪")
-        self._status_indicator.setFont(QFont("Microsoft YaHei", 10))
-        self._status_indicator.setStyleSheet("color: #43A047;")
-        t_layout.addWidget(self._status_indicator)
+        self._status_indicator.setFont(QFont("Microsoft YaHei", 13))
+        self._status_indicator.setStyleSheet(
+            "color: #43A047; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+        )
+        self._status_indicator.setMinimumWidth(280)
+        t_layout.addWidget(self._status_indicator, 1)  # flex: 1
 
-        # 年份筛选
+        # ── 年份筛选区 ──
         year_label = QLabel("年份:")
-        year_label.setFont(QFont("Microsoft YaHei", 10))
-        year_label.setStyleSheet("color: #666; margin-left: 12px;")
+        year_label.setFont(QFont("Microsoft YaHei", 13))
+        year_label.setStyleSheet("color: #555;")
         t_layout.addWidget(year_label)
 
         self._year_combo = QComboBox()
-        self._year_combo.setFixedWidth(90)
+        self._year_combo.setMinimumWidth(120)
         self._year_combo.setStyleSheet(
-            "QComboBox { border: 1px solid #DDD; border-radius: 4px; "
-            "padding: 2px 6px; font-size: 11px; background: white; }"
+            "QComboBox { border: 1px solid #CCC; border-radius: 4px; "
+            "padding: 4px 8px; font-size: 13px; background: white; min-height: 28px; }"
             "QComboBox:hover { border-color: #1E88E5; }"
+            "QComboBox::drop-down { border: none; width: 24px; }"
         )
-        self._year_combo.addItem("全部年份", "")
-        self._year_combo.addItem("2026年", 2026)
-        self._year_combo.addItem("2025年", 2025)
-        self._year_combo.addItem("2024年", 2024)
-        self._year_combo.addItem("2023年", 2023)
-        self._year_combo.addItem("2022年", 2022)
-        self._year_combo.addItem("2021年", 2021)
-        self._year_combo.addItem("2020年", 2020)
-        self._year_combo.addItem("2010年以前", -1)
+        for text, data in [
+            ("全部年份", ""), ("2026年", 2026), ("2025年", 2025),
+            ("2024年", 2024), ("2023年", 2023), ("2022年", 2022),
+            ("2021年", 2021), ("2020年", 2020), ("2010年以前", -1),
+        ]:
+            self._year_combo.addItem(text, data)
         self._year_combo.currentIndexChanged.connect(self._on_year_changed)
         t_layout.addWidget(self._year_combo)
 
-        t_layout.addStretch()
+        # ── 右侧按钮组（flex: 0 0 auto，不收缩） ──
+        btn_container = QWidget()
+        btn_layout = QHBoxLayout(btn_container)
+        btn_layout.setContentsMargins(0, 0, 0, 0)
+        btn_layout.setSpacing(6)
 
-        # 导出按钮
-        export_btn = QPushButton("📤 导出报表")
-        export_btn.setStyleSheet(self._toolbar_btn_style())
-        export_btn.setCursor(Qt.PointingHandCursor)
-        export_btn.clicked.connect(self._export_report)
-        t_layout.addWidget(export_btn)
+        btn_defs = [
+            ("📤 导出报表", self._export_report),
+            ("📄 导出 PDF", self._export_pdf),
+            ("🖼️ 导出图片", self._export_image),
+            ("🔍 类型下钻", self._open_genre_drilldown),
+            ("📊 多片对比", self._open_compare_tool),
+        ]
+        for text, callback in btn_defs:
+            btn = QPushButton(text)
+            btn.setStyleSheet(self._toolbar_btn_style())
+            btn.setCursor(Qt.PointingHandCursor)
+            btn.clicked.connect(callback)
+            btn_layout.addWidget(btn)
 
-        pdf_btn = QPushButton("📄 导出 PDF")
-        pdf_btn.setStyleSheet(self._toolbar_btn_style())
-        pdf_btn.setCursor(Qt.PointingHandCursor)
-        pdf_btn.clicked.connect(self._export_pdf)
-        t_layout.addWidget(pdf_btn)
-
-        img_btn = QPushButton("🖼️ 导出图片")
-        img_btn.setStyleSheet(self._toolbar_btn_style())
-        img_btn.setCursor(Qt.PointingHandCursor)
-        img_btn.clicked.connect(self._export_image)
-        t_layout.addWidget(img_btn)
-
-        # 类型下钻按钮
-        drill_btn = QPushButton("🔍 类型下钻")
-        drill_btn.setStyleSheet(self._toolbar_btn_style())
-        drill_btn.setCursor(Qt.PointingHandCursor)
-        drill_btn.clicked.connect(self._open_genre_drilldown)
-        t_layout.addWidget(drill_btn)
-
-        compare_btn = QPushButton("📊 多片对比")
-        compare_btn.setStyleSheet(self._toolbar_btn_style())
-        compare_btn.setCursor(Qt.PointingHandCursor)
-        compare_btn.clicked.connect(self._open_compare_tool)
-        t_layout.addWidget(compare_btn)
-
-        # 分隔
+        # 分隔 + 自定义
         sep = QLabel("|")
         sep.setStyleSheet("color: #DDD; padding: 0 4px;")
-        t_layout.addWidget(sep)
+        btn_layout.addWidget(sep)
 
-        # 自定义布局按钮
         settings_btn = QPushButton("⚙️ 自定义")
         settings_btn.setStyleSheet(
-            "QPushButton { background: #F5F5F5; color: #555; border: 1px solid #DDD; "
-            "border-radius: 4px; padding: 4px 12px; font-size: 11px; }"
-            "QPushButton:hover { background: #E0E0E0; }"
+            "QPushButton { background: #F8F9FA; color: #444; border: 1px solid #DEE2E6; "
+            "border-radius: 4px; padding: 4px 14px; font-size: 13px; min-height: 30px; }"
+            "QPushButton:hover { background: #E3F2FD; border-color: #1E88E5; color: #1E88E5; }"
         )
         settings_btn.setCursor(Qt.PointingHandCursor)
         settings_btn.clicked.connect(self._open_dashboard_config)
-        t_layout.addWidget(settings_btn)
+        btn_layout.addWidget(settings_btn)
+
+        t_layout.addWidget(btn_container, 0)  # flex: 0 0 auto
 
         layout.addWidget(toolbar)
         layout.addSpacing(12)
@@ -227,8 +218,8 @@ class DashboardPage(QWidget):
     @staticmethod
     def _toolbar_btn_style() -> str:
         return (
-            "QPushButton { background: #F5F5F5; color: #555; border: 1px solid #DDD; "
-            "border-radius: 4px; padding: 4px 12px; font-size: 11px; }"
+            "QPushButton { background: #F8F9FA; color: #444; border: 1px solid #DEE2E6; "
+            "border-radius: 4px; padding: 4px 14px; font-size: 13px; min-height: 30px; }"
             "QPushButton:hover { background: #E3F2FD; border-color: #1E88E5; color: #1E88E5; }"
         )
 
@@ -443,9 +434,9 @@ class DashboardPage(QWidget):
         r3ll.setContentsMargins(0, 0, 0, 0)
         r3ll.setSpacing(0)
         r3t1 = QLabel("评分分布")
-        r3t1.setFont(QFont("Microsoft YaHei", 13, QFont.Bold))
-        r3t1.setFixedHeight(30)
-        r3t1.setStyleSheet("color: #37474F; padding: 6px 12px 0;")
+        r3t1.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
+        r3t1.setFixedHeight(36)
+        r3t1.setStyleSheet("color: #37474F; padding: 8px 12px 0;")
         r3ll.addWidget(r3t1)
         self.rating_view = self._make_webview(370)
         r3ll.addWidget(self.rating_view)
@@ -456,9 +447,9 @@ class DashboardPage(QWidget):
         r3rl.setContentsMargins(0, 0, 0, 0)
         r3rl.setSpacing(0)
         r3t2 = QLabel("电影类型占比")
-        r3t2.setFont(QFont("Microsoft YaHei", 13, QFont.Bold))
-        r3t2.setFixedHeight(30)
-        r3t2.setStyleSheet("color: #37474F; padding: 6px 12px 0;")
+        r3t2.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
+        r3t2.setFixedHeight(36)
+        r3t2.setStyleSheet("color: #37474F; padding: 8px 12px 0;")
         r3rl.addWidget(r3t2)
         self.genre_view = self._make_webview(370)
         r3rl.addWidget(self.genre_view)
@@ -579,12 +570,12 @@ class DashboardPage(QWidget):
         ib.setContentsMargins(24, 14, 24, 14)
         ib.setSpacing(4)
         ins_title = QLabel("📊 数据洞察")
-        ins_title.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
-        ins_title.setFixedHeight(26)
+        ins_title.setFont(QFont("Microsoft YaHei", 15, QFont.Bold))
+        ins_title.setFixedHeight(30)
         ins_title.setStyleSheet("color: #FFD700;")
         ib.addWidget(ins_title)
         self._insight_text = QLabel("加载中...")
-        self._insight_text.setFont(QFont("Microsoft YaHei", 12))
+        self._insight_text.setFont(QFont("Microsoft YaHei", 13))
         self._insight_text.setStyleSheet("color: #E0E0E0;")
         self._insight_text.setWordWrap(True)
         ib.addWidget(self._insight_text)

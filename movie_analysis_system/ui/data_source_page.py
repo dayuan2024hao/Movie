@@ -79,7 +79,7 @@ class DataSourcePage(QWidget):
         layout.addWidget(overview_title)
 
         card_row = QWidget()
-        card_row.setFixedHeight(90)
+        card_row.setFixedHeight(120)
         cl = QHBoxLayout(card_row)
         cl.setContentsMargins(0, 0, 0, 0)
         cl.setSpacing(12)
@@ -101,7 +101,7 @@ class DataSourcePage(QWidget):
         #  数据源信息
         # ══════════════════════════════════════
         source_title = QLabel("🔌 数据源信息")
-        source_title.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
+        source_title.setFont(QFont("Microsoft YaHei", 16, QFont.Bold))
         source_title.setStyleSheet("color: #37474F;")
         layout.addWidget(source_title)
 
@@ -112,21 +112,21 @@ class DataSourcePage(QWidget):
             "border: 1px solid #E0E0E0; }"
         )
         info_layout = QVBoxLayout(info_frame)
-        info_layout.setContentsMargins(16, 12, 16, 12)
-        info_layout.setSpacing(8)
+        info_layout.setContentsMargins(20, 16, 20, 16)
+        info_layout.setSpacing(10)
 
         self._source_label = QLabel("数据来源: 加载中...")
-        self._source_label.setFont(QFont("Microsoft YaHei", 12))
+        self._source_label.setFont(QFont("Microsoft YaHei", 14))
         self._source_label.setStyleSheet("color: #555;")
         info_layout.addWidget(self._source_label)
 
         self._time_label = QLabel("上次更新: 加载中...")
-        self._time_label.setFont(QFont("Microsoft YaHei", 12))
+        self._time_label.setFont(QFont("Microsoft YaHei", 14))
         self._time_label.setStyleSheet("color: #555;")
         info_layout.addWidget(self._time_label)
 
         self._price_coverage_label = QLabel("票价覆盖率: 加载中...")
-        self._price_coverage_label.setFont(QFont("Microsoft YaHei", 12))
+        self._price_coverage_label.setFont(QFont("Microsoft YaHei", 14))
         self._price_coverage_label.setStyleSheet("color: #555;")
         info_layout.addWidget(self._price_coverage_label)
 
@@ -136,7 +136,7 @@ class DataSourcePage(QWidget):
         #  操作按钮
         # ══════════════════════════════════════
         action_title = QLabel("⚙️ 操作")
-        action_title.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
+        action_title.setFont(QFont("Microsoft YaHei", 16, QFont.Bold))
         action_title.setStyleSheet("color: #37474F;")
         layout.addWidget(action_title)
 
@@ -160,7 +160,7 @@ class DataSourcePage(QWidget):
         action_layout.addWidget(self._progress_bar)
 
         self._status_label = QLabel("")
-        self._status_label.setFont(QFont("Microsoft YaHei", 11))
+        self._status_label.setFont(QFont("Microsoft YaHei", 13))
         self._status_label.setStyleSheet("color: #666;")
         self._status_label.hide()
         action_layout.addWidget(self._status_label)
@@ -171,10 +171,10 @@ class DataSourcePage(QWidget):
         self._refresh_btn = QPushButton("🔄 重新爬取热映数据")
         self._refresh_btn.setObjectName("primaryBtn")
         self._refresh_btn.setCursor(Qt.PointingHandCursor)
-        self._refresh_btn.setFixedHeight(38)
+        self._refresh_btn.setFixedHeight(44)
         self._refresh_btn.setStyleSheet(
             "QPushButton#primaryBtn { background: #1E88E5; color: white; "
-            "border: none; border-radius: 6px; padding: 0 20px; font-size: 13px; }"
+            "border: none; border-radius: 6px; padding: 0 24px; font-size: 15px; }"
             "QPushButton#primaryBtn:hover { background: #1565C0; }"
             "QPushButton#primaryBtn:disabled { background: #BBDEFB; }"
         )
@@ -184,10 +184,10 @@ class DataSourcePage(QWidget):
         self._repair_btn = QPushButton("🔧 补全票价数据")
         self._repair_btn.setObjectName("secondaryBtn")
         self._repair_btn.setCursor(Qt.PointingHandCursor)
-        self._repair_btn.setFixedHeight(38)
+        self._repair_btn.setFixedHeight(44)
         self._repair_btn.setStyleSheet(
             "QPushButton#secondaryBtn { background: #43A047; color: white; "
-            "border: none; border-radius: 6px; padding: 0 20px; font-size: 13px; }"
+            "border: none; border-radius: 6px; padding: 0 24px; font-size: 15px; }"
             "QPushButton#secondaryBtn:hover { background: #388E3C; }"
             "QPushButton#secondaryBtn:disabled { background: #C8E6C9; }"
         )
@@ -203,7 +203,7 @@ class DataSourcePage(QWidget):
         #  爬取历史日志
         # ══════════════════════════════════════
         log_title = QLabel("📋 爬取历史")
-        log_title.setFont(QFont("Microsoft YaHei", 14, QFont.Bold))
+        log_title.setFont(QFont("Microsoft YaHei", 16, QFont.Bold))
         log_title.setStyleSheet("color: #37474F;")
         layout.addWidget(log_title)
 
@@ -217,8 +217,8 @@ class DataSourcePage(QWidget):
         self._log_table.setAlternatingRowColors(True)
         self._log_table.setMaximumHeight(240)
         self._log_table.setStyleSheet(
-            "QTableWidget { border: 1px solid #E0E0E0; border-radius: 4px; }"
-            "QHeaderView::section { background: #ECEFF1; padding: 6px; }"
+            "QTableWidget { border: 1px solid #E0E0E0; border-radius: 4px; font-size: 13px; }"
+            "QHeaderView::section { background: #ECEFF1; padding: 8px; font-size: 13px; }"
         )
         layout.addWidget(self._log_table)
 
@@ -236,20 +236,20 @@ class DataSourcePage(QWidget):
             f"QFrame {{ background: white; border-radius: 8px; "
             f"border: 1px solid #E0E0E0; }}"
         )
-        card.setFixedHeight(80)
+        card.setFixedHeight(110)
         cl = QVBoxLayout(card)
-        cl.setContentsMargins(12, 8, 12, 8)
+        cl.setContentsMargins(8, 10, 8, 6)
         cl.setAlignment(Qt.AlignCenter)
 
         num = QLabel(value)
-        num.setFont(QFont("Microsoft YaHei", 22, QFont.Bold))
+        num.setFont(QFont("Microsoft YaHei", 30, QFont.Bold))
         num.setStyleSheet(f"color: {color};")
         num.setAlignment(Qt.AlignCenter)
         cl.addWidget(num)
 
         lbl = QLabel(label)
-        lbl.setFont(QFont("Microsoft YaHei", 11))
-        lbl.setStyleSheet("color: #666;")
+        lbl.setFont(QFont("Microsoft YaHei", 13))
+        lbl.setStyleSheet("color: #555;")
         lbl.setAlignment(Qt.AlignCenter)
         cl.addWidget(lbl)
         return card

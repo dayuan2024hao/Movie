@@ -63,15 +63,15 @@ def create_top10_chart(db: DatabaseManager,
 
     bar = (
         Bar(init_opts=opts.InitOpts(width="100%", height="384px", bg_color="#FFFFFF"))
-        .add_xaxis(titles[::-1])
+        .add_xaxis(titles)
         .add_yaxis(
             "票房（万元）",
-            values[::-1],
+            values,
             label_opts=opts.LabelOpts(
-                position="right", formatter="{c} 万",
-                font_size=13, font_weight="bold",
+                position="top", formatter="{c} 万",
+                font_size=12, font_weight="bold",
             ),
-            itemstyle_opts=opts.ItemStyleOpts(color=item_colors[::-1]),
+            itemstyle_opts=opts.ItemStyleOpts(color=item_colors),
         )
         .set_global_opts(
             tooltip_opts=opts.TooltipOpts(
@@ -79,12 +79,15 @@ def create_top10_chart(db: DatabaseManager,
                 formatter="{b}<br/>票房: {c} 万<br/>",
             ),
             xaxis_opts=opts.AxisOpts(
-                axislabel_opts=opts.LabelOpts(font_size=15, color="#757575"),
+                axislabel_opts=opts.LabelOpts(
+                    font_size=12, color="#757575",
+                    rotate=20, interval=0,
+                ),
                 axistick_opts=opts.AxisTickOpts(is_show=False),
                 splitline_opts=opts.SplitLineOpts(is_show=False),
             ),
             yaxis_opts=opts.AxisOpts(
-                axislabel_opts=opts.LabelOpts(font_size=15, color="#37474F"),
+                axislabel_opts=opts.LabelOpts(font_size=13, color="#37474F"),
                 axistick_opts=opts.AxisTickOpts(is_show=False),
                 splitline_opts=opts.SplitLineOpts(
                     is_show=True, linestyle_opts=opts.LineStyleOpts(color="#F0F0F0")
@@ -93,5 +96,4 @@ def create_top10_chart(db: DatabaseManager,
             legend_opts=opts.LegendOpts(is_show=False),
         )
     )
-    bar.options["grid"] = [opts.GridOpts(is_contain_label=True, pos_right="180").opts]
     return engine.render(bar)

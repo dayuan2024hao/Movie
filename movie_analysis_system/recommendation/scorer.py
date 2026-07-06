@@ -57,15 +57,10 @@ def calc_high_rating_rank(movies: list[dict]) -> list[dict]:
     算法：评分降序，无评分排在末尾。
     数据源：rating 字段（34/47 在映有数据）
     """
-    print(f"[DEBUG_STEP_3] calc_high_rating_rank input: {len(movies)} movies")
     scored = [dict(m) for m in movies if m.get("rating", 0) > 0]
-    print(f"[DEBUG_STEP_3]   after filter (rating>0): {len(scored)} movies")
-    if scored:
-        print(f"[DEBUG_STEP_3]   before sort - first 5: {[(m.get('title','?')[:8], m.get('rating')) for m in scored[:5]]}")
-        print(f"[DEBUG_STEP_3]   before sort - last 5: {[(m.get('title','?')[:8], m.get('rating')) for m in scored[-5:]]}")
+    if not scored:
+        return []
     scored.sort(key=lambda m: m["rating"], reverse=True)
-    if scored:
-        print(f"[DEBUG_STEP_3]   after sort - first 5: {[(m.get('title','?')[:8], m.get('rating')) for m in scored[:5]]}")
     return scored
 
 
