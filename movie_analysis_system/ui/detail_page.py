@@ -32,7 +32,6 @@ from PyQt5.QtGui import (
 
 from database.db_manager import DatabaseManager
 from crawler.realtime_aggregator import RealtimeAggregator
-from crawler.omdb_api import OMDBApi
 
 logger = logging.getLogger("DetailPage")
 
@@ -45,9 +44,12 @@ CACHE_DIR = os.path.join(
     "cache", "posters",
 )
 
-# TMDB API 配置（用户已提供 Key）
+# TMDB API 配置（从 config.py 读取）
 # 申请地址：https://www.themoviedb.org/settings/api
-TMDB_API_KEY = "689c6bb83710eee417a14d457d92e86d"
+import sys, os
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _PROJECT_ROOT)
+from config import TMDB_API_KEY
 
 AGGREGATOR = RealtimeAggregator()
 

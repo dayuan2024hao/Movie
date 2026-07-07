@@ -28,6 +28,9 @@ movie_analysis_system/cache/posters/
 .vscode/
 .idea/
 
+# 对话纪要（私人对话记录）
+对话纪要*.md
+
 # 系统文件
 .DS_Store
 Thumbs.db

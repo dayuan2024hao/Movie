@@ -22,8 +22,14 @@ import requests
 
 logger = logging.getLogger("OMDB")
 
-# OMDB API Key
-OMDB_API_KEY = "c8baa94c"
+# OMDB API Key（从 config.py 读取，空字符串则跳过 OMDB）
+import sys, os
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, _PROJECT_ROOT)
+try:
+    from config import OMDB_API_KEY
+except ImportError:
+    OMDB_API_KEY = ""
 OMDB_BASE = "http://www.omdbapi.com/"
 
 # 英文片名映射（中文→英文）
